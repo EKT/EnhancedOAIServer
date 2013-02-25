@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="transformationEngine" class="gr.ekt.transformationengine.core.TransformationEngine">
+		<property name="dataLoader" ref="dataloader" />
+		<property name="workflow" ref = "conjunctionTransformationWorkflow"/>
+	</bean>
+
+	<bean id="dataloader" class="gr.ekt.oaicatbte.dspace.dataloader.DSpaceDataLoader">
+		
+	</bean>
+
+	<bean id="conjunctionTransformationWorkflow"
+		class="gr.ekt.transformationengine.core.ConjunctionTransformationWorkflow">
+		<property name="steps">
+			<list>
+				
+			</list>
+		</property>
+	</bean>
+</beans>
