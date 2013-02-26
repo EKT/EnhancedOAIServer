@@ -45,249 +45,26 @@ public class Harvest
 	/** log4j logger */
 	private static Logger log = Logger.getLogger(Harvest.class);
 
-	/**
-	 * Obtain information about items that have been created, modified or
-	 * withdrawn within a given date range. You can also specify 'offset' and
-	 * 'limit' so that a big harvest can be split up into smaller sections.
-	 * <P>
-	 * Note that dates are passed in the standard ISO8601 format used by DSpace
-	 * (and OAI-PMH).
-	 * <P>
-	 * FIXME: Assumes all in_archive items have public metadata
-	 * 
-	 * @param context
-	 *            DSpace context
-	 * @param scope
-	 *            a Collection, Community, or <code>null</code> indicating the scope is
-	 *            all of DSpace
-	 * @param startDate
-	 *            start of date range, or <code>null</code>
-	 * @param endDate
-	 *            end of date range, or <code>null</code>
-	 * @param offset
-	 *            for a partial harvest, the point in the overall list of
-	 *            matching items to start at. 0 means just start at the
-	 *            beginning.
-	 * @param limit
-	 *            the number of matching items to return in a partial harvest.
-	 *            Specify 0 to return the whole list (or the rest of the list if
-	 *            an offset was specified.)
-	 * @param items
-	 *            if <code>true</code> the <code>item</code> field of each
-	 *            <code>HarvestedItemInfo</code> object is filled out
-	 * @param collections
-	 *            if <code>true</code> the <code>collectionHandles</code>
-	 *            field of each <code>HarvestedItemInfo</code> object is
-	 *            filled out
-	 * @param withdrawn
-	 *            If <code>true</code>, information about withdrawn items is
-	 *            included
-	 * @param nonAnon
-	 *            If items without anonymous access should be included or not
-	 * @return List of <code>HarvestedItemInfo</code> objects
-	 * @throws SQLException
-	 * @throws ParseException If the date is not in a supported format
-	 */
-	public static List harvest(Context context, DSpaceObject scope,
-			String startDate, String endDate, int offset, int limit,
-			boolean items, boolean collections, boolean withdrawn,
-			boolean nonAnon) throws SQLException, ParseException
-			{
-
-		// Put together our query. Note there is no need for an
-		// "in_archive=true" condition, we are using the existence of
-		// Handles as our 'existence criterion'.
-		// FIXME: I think the "DISTINCT" is redundant
-		String query = "SELECT DISTINCT handle.handle, handle.resource_id, item.withdrawn, item.last_modified FROM handle, item";
-
-
-		// We are building a complex query that may contain a variable 
-		// about of input data points. To accomidate this while still 
-		// providing type safty we build a list of parameters to be 
-		// plugged into the query at the database level.
-		List parameters = new ArrayList();
-
-		if (scope != null)
-		{
-			if (scope.getType() == Constants.COLLECTION)
-			{
-				query += ", collection2item";
-			}
-			else if (scope.getType() == Constants.COMMUNITY)
-			{
-				query += ", communities2item";
-			}
-		}       
-
-		query += " WHERE handle.resource_type_id=" + Constants.ITEM + " AND handle.resource_id=item.item_id ";
-
-		if (scope != null)
-		{
-			if (scope.getType() == Constants.COLLECTION)
-			{
-				query += " AND collection2item.collection_id= ? " +
-				" AND collection2item.item_id=handle.resource_id ";
-				parameters.add(new Integer(scope.getID()));
-			}
-			else if (scope.getType() == Constants.COMMUNITY)
-			{
-				query += " AND communities2item.community_id= ? " +
-				" AND communities2item.item_id=handle.resource_id";
-				parameters.add(new Integer(scope.getID()));
-			}
-		}      
-
-		if (startDate != null)
-		{
-			query = query + " AND item.last_modified >= ? ";
-			parameters.add(toTimestamp(startDate, false));
-		}
-
-		if (endDate != null)
-		{
-			/*
-			 * If the end date has seconds precision, e.g.:
-			 * 
-			 * 2004-04-29T13:45:43Z
-			 * 
-			 * we need to add 999 milliseconds to this. This is because SQL
-			 * TIMESTAMPs have millisecond precision, and so might have a value:
-			 * 
-			 * 2004-04-29T13:45:43.952Z
-			 * 
-			 * and so <= '2004-04-29T13:45:43Z' would not pick this up. Reading
-			 * things out of the database, TIMESTAMPs are rounded down, so the
-			 * above value would be read as '2004-04-29T13:45:43Z', and
-			 * therefore a caller would expect <= '2004-04-29T13:45:43Z' to
-			 * include that value.
-			 * 
-			 * Got that? ;-)
-			 */
-			boolean selfGenerated = false;
-			if (endDate.length() == 20)
-			{
-				endDate = endDate.substring(0, 19) + ".999Z";
-				selfGenerated = true;
-			}
-
-			query += " AND item.last_modified <= ? ";
-			parameters.add(toTimestamp(endDate, selfGenerated));
-		}
-
-		if (withdrawn == false)
-		{
-			// Exclude withdrawn items
-			if ("oracle".equals(ConfigurationManager.getProperty("db.name")))
-			{
-				query += " AND withdrawn=0 ";
-			}
-			else
-			{
-				// postgres uses booleans
-				query += " AND withdrawn=false ";
-			}
-		}
-
-		// Order by item ID, so that for a given harvest the order will be
-		// consistent. This is so that big harvests can be broken up into
-		// several smaller operations (e.g. for OAI resumption tokens.)
-		query += " ORDER BY handle.resource_id";
-
-		log.debug(LogManager.getHeader(context, "harvest SQL (no agent - 1 scope)", query));
-
-		// Execute
-		Object[] parametersArray = parameters.toArray();
-		TableRowIterator tri = DatabaseManager.query(context, query, parametersArray);
-		List infoObjects = new LinkedList();
-		int index = 0;
-
-		try
-		{
-			// Process results of query into HarvestedItemInfo objects
-			while (tri.hasNext())
-			{
-				TableRow row = tri.next();
-
-				/*
-				 * This conditional ensures that we only process items within any
-				 * constraints specified by 'offset' and 'limit' parameters.
-				 */
-				if ((index >= offset)
-						&& ((limit == 0) || (index < (offset + limit))))
-				{
-					HarvestedItemInfo itemInfo = new HarvestedItemInfo();
-
-					itemInfo.context = context;
-					itemInfo.handle = row.getStringColumn("handle");
-					itemInfo.itemID = row.getIntColumn("resource_id");
-					itemInfo.datestamp = row.getDateColumn("last_modified");
-					itemInfo.withdrawn = row.getBooleanColumn("withdrawn");
-
-					if (collections)
-					{
-						fillCollections(context, itemInfo);
-					}
-
-					if (items)
-					{
-						// Get the item
-						itemInfo.item = Item.find(context, itemInfo.itemID);
-					}
-
-					if (nonAnon)
-					{
-						infoObjects.add(itemInfo);
-					} else
-					{
-						Group[] authorizedGroups = AuthorizeManager.getAuthorizedGroups(context, itemInfo.item, Constants.READ);
-						boolean added = false;
-						for (int i = 0; i < authorizedGroups.length; i++)
-						{
-							if ((authorizedGroups[i].getID() == 0) && (!added))
-							{
-								infoObjects.add(itemInfo);
-								added = true;
-							}
-						}
-					}
-				}
-
-				index++;
-			}
-		}
-		finally
-		{
-			// close the TableRowIterator to free up resources
-			if (tri != null)
-				tri.close();
-		}
-
-		return infoObjects;
-			}
-
 	public static List harvest(Context context, ArrayList<DSpaceObject> scopes,
 			String startDate, String endDate, int offset, int limit,
 			boolean items, boolean collections, boolean withdrawn,
 			boolean nonAnon) throws SQLException, ParseException
 			{
-		
-		if (scopes == null){
-			DSpaceObject tmp = null;
-			return Harvest.harvest(context, tmp, startDate, endDate, offset, limit, items, collections, withdrawn, nonAnon);
-		}
 
 		ArrayList<DSpaceObject> collectionScopes = new ArrayList<DSpaceObject>();
 		ArrayList<DSpaceObject> communityScopes = new ArrayList<DSpaceObject>();
 		boolean hasCollection = false;
 		boolean hasCommunity = false;
-		for (DSpaceObject scope : scopes){
-			if (scope.getType() == Constants.COLLECTION){
-				hasCollection = true;
-				collectionScopes.add(scope);
-			}
-			if (scope.getType() == Constants.COMMUNITY){
-				hasCommunity = true;
-				communityScopes.add(scope);
+		if (scopes!=null && scopes.size()>0) {
+			for (DSpaceObject scope : scopes){
+				if (scope.getType() == Constants.COLLECTION){
+					hasCollection = true;
+					collectionScopes.add(scope);
+				}
+				if (scope.getType() == Constants.COMMUNITY){
+					hasCommunity = true;
+					communityScopes.add(scope);
+				}
 			}
 		}
 
@@ -303,6 +80,7 @@ public class Harvest
 		if (hasCollection)
 			queryCol = "(SELECT DISTINCT handle.handle, handle.resource_id, item.withdrawn, item.last_modified FROM handle, item";
 
+		String queryGen ="SELECT DISTINCT handle.handle, handle.resource_id, item.withdrawn, item.last_modified FROM handle, item";
 
 		// We are building a complex query that may contain a variable 
 		// about of input data points. To accomidate this while still 
@@ -310,6 +88,7 @@ public class Harvest
 		// plugged into the query at the database level.
 		List parametersCol = new ArrayList();
 		List parametersCom = new ArrayList();
+		List parametersGen = new ArrayList();
 
 
 		if (communityScopes.size() > 0)
@@ -322,6 +101,8 @@ public class Harvest
 		if (hasCollection)
 			queryCol += " WHERE handle.resource_type_id=" + Constants.ITEM + " AND handle.resource_id=item.item_id ";
 
+		queryGen += " WHERE handle.resource_type_id=" + Constants.ITEM + " AND handle.resource_id=item.item_id ";
+		
 		if (communityScopes.size() > 0){
 			queryCom += " AND (";
 			int counter = 0;
@@ -361,6 +142,9 @@ public class Harvest
 				queryCol = queryCol + " AND item.last_modified >= ? ";
 				parametersCol.add(toTimestamp(startDate, false));
 			}
+			
+			queryGen += " AND item.last_modified >= ? ";
+			parametersGen.add(toTimestamp(startDate, false));
 		}
 
 		if (endDate != null)
@@ -398,6 +182,9 @@ public class Harvest
 				queryCol += " AND item.last_modified <= ? ";
 				parametersCol.add(toTimestamp(endDate, selfGenerated));
 			}
+			
+			queryGen += " AND item.last_modified <= ? ";
+			parametersGen.add(toTimestamp(endDate, selfGenerated));
 		}
 
 		if (withdrawn == false)
@@ -409,6 +196,8 @@ public class Harvest
 					queryCom += " AND withdrawn=0 ";
 				if (hasCollection)
 					queryCol += " AND withdrawn=0 ";
+				
+				queryGen += " AND withdrawn=0 ";
 			}
 			else
 			{
@@ -417,13 +206,11 @@ public class Harvest
 					queryCom += " AND withdrawn=false ";
 				if (hasCollection)
 					queryCol += " AND withdrawn=false ";
+				
+				queryGen += " AND withdrawn=false ";
 			}
 		}
 
-		// Order by item ID, so that for a given harvest the order will be
-		// consistent. This is so that big harvests can be broken up into
-		// several smaller operations (e.g. for OAI resumption tokens.)
-		//query += " ORDER BY handle.resource_id";
 		if (hasCommunity)
 			queryCom += ")";
 		if (hasCollection)
@@ -451,7 +238,15 @@ public class Harvest
 		for (Object s : parametersCol){
 			parameters.add(s);
 		}
-
+		
+		if (scopes == null || scopes.size()==0){
+			query = queryGen + "ORDER BY A.resource_id";
+			
+			for (Object s : parametersGen){
+				parameters.add(s);
+			}
+		}
+		
 		log.info(LogManager.getHeader(context, "harvest SQL (no agent - many scopes)", query));
 
 		// Execute
@@ -494,7 +289,7 @@ public class Harvest
 					}
 
 					if (nonAnon)
-					{
+					{ 
 						infoObjects.add(itemInfo);
 					} else
 					{
@@ -524,7 +319,7 @@ public class Harvest
 		return infoObjects;
 			}
 
-	
+
 	/**
 	 * Get harvested item info for a single item. <code>item</code> field in
 	 * returned <code>HarvestedItemInfo</code> object is always filled out.
@@ -587,8 +382,8 @@ public class Harvest
 		// Get the collection Handles from DB
 		TableRowIterator colRows = DatabaseManager.query(context,
 				"SELECT handle.handle FROM handle, collection2item WHERE handle.resource_type_id= ? " + 
-				"AND collection2item.collection_id=handle.resource_id AND collection2item.item_id = ? ",
-				Constants.COLLECTION, itemInfo.itemID);
+						"AND collection2item.collection_id=handle.resource_id AND collection2item.item_id = ? ",
+						Constants.COLLECTION, itemInfo.itemID);
 
 		try
 		{

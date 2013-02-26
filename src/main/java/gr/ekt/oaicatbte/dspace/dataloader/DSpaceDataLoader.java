@@ -5,11 +5,7 @@ package gr.ekt.oaicatbte.dspace.dataloader;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
@@ -38,7 +34,6 @@ public class DSpaceDataLoader extends DataLoader {
 	 * 
 	 */
 	public DSpaceDataLoader() {
-		// TODO Auto-generated constructor stub
 	}
 
 	/* (non-Javadoc)
@@ -46,31 +41,32 @@ public class DSpaceDataLoader extends DataLoader {
 	 */
 	@Override
 	public RecordSet loadData() {
-		// TODO Auto-generated method stub
 
 		Context context = null;
-		Map results = new HashMap();
-
-		// List to put results in
-		List records = new LinkedList();
 
 		try
 		{
 			context = new Context();
 
-			ArrayList<DSpaceObject> scopes = resolveSets(context, new ArrayList<String>(Arrays.asList("hdl_10442_2")));
+			DSpaceDataLoadingSpec dspaceDataLoadingSpec = (DSpaceDataLoadingSpec)this.getLoadingSpec();
+			ArrayList<DSpaceObject> scopes = resolveSets(context, dspaceDataLoadingSpec.getSets());
 
-			log.info("Scopes = " + scopes.size());
-			
 			boolean includeAll = ConfigurationManager.getBooleanProperty("harvest.includerestricted.oai", true);
 
-			List itemInfos2 = Harvest.harvest(context, scopes, null, null, 0, 100, true, true, true, includeAll); // Need items, containers + withdrawals*/
-		
-			log.info("OAIIIIIIIII: items: " + itemInfos2.size());
-		}catch (Exception e){
+			List itemInfos2 = Harvest.harvest(context, scopes, null, null, dspaceDataLoadingSpec.getOffset(), dspaceDataLoadingSpec.getMax(), true, true, true, includeAll); // Need items, containers + withdrawals*/
+			
+			log.info("OAI: items: " + itemInfos2.size());
 
+		}catch (Exception e){
+			e.printStackTrace();
 		}
-		//Harvest.harvest(context, scopes, startDate, endDate, offset, limit, items, collections, withdrawn, nonAnon)
+		finally {
+			try {
+				context.complete();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 
 		return null;
 	}
@@ -130,12 +126,13 @@ public class DSpaceDataLoader extends DataLoader {
 		return obj;
 	}
 
-	private ArrayList<DSpaceObject> resolveSets(Context context, ArrayList<String> sets){
+	private ArrayList<DSpaceObject> resolveSets(Context context, List<String> sets){
 		ArrayList<DSpaceObject> result = new ArrayList<DSpaceObject>();
-		if (sets == null) return null;
+		if (sets == null) 
+			return null;
 		for (String set : sets){
 
-			if (set == null || set.trim().equals("all"))
+			if (set == null)
 			{
 				continue;
 			}
@@ -153,7 +150,6 @@ public class DSpaceDataLoader extends DataLoader {
 				try {
 					o = HandleManager.resolveToObject(context, handle);
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}

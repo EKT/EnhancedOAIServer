@@ -3,6 +3,8 @@
  */
 package gr.ekt.oaicatbte.dspace.dataloader;
 
+import java.util.List;
+
 import gr.ekt.transformationengine.dataloaders.DataLoadingSpec;
 
 /**
@@ -11,22 +13,27 @@ import gr.ekt.transformationengine.dataloaders.DataLoadingSpec;
  */
 public class DSpaceDataLoadingSpec extends DataLoadingSpec {
 
-	private String set;
-	private String max;
-	private String offset;
+	private List<String> sets;
+	private int max;
+	private int offset;
+	
+	private String resumptionToken;
 	
 	/**
 	 * 
 	 */
 	public DSpaceDataLoadingSpec() {
-		// TODO Auto-generated constructor stub
 	}
 
-	public DSpaceDataLoadingSpec(String set, String max, String offset) {
+	public DSpaceDataLoadingSpec(List<String> sets, int max, int offset) {
 		super();
-		this.set = set;
+		this.sets = sets;
 		this.max = max;
 		this.offset = offset;
+	}
+	
+	public DSpaceDataLoadingSpec(String resumptionToken) {
+		
 	}
 
 	/* (non-Javadoc)
@@ -34,31 +41,30 @@ public class DSpaceDataLoadingSpec extends DataLoadingSpec {
 	 */
 	@Override
 	public DataLoadingSpec generateNextLoadingSpec() {
-		// TODO Auto-generated method stub
-		return new DSpaceDataLoadingSpec(set, max, offset+max);
+		return new DSpaceDataLoadingSpec(sets, max, offset+max);
 	}
 
-	public String getSet() {
-		return set;
+	public List<String> getSets() {
+		return sets;
 	}
 
-	public void setSet(String set) {
-		this.set = set;
+	public void setSets(List<String> sets) {
+		this.sets = sets;
 	}
 
-	public String getMax() {
+	public int getMax() {
 		return max;
 	}
 
-	public void setMax(String max) {
+	public void setMax(int max) {
 		this.max = max;
 	}
 
-	public String getOffset() {
+	public int getOffset() {
 		return offset;
 	}
 
-	public void setOffset(String offset) {
+	public void setOffset(int offset) {
 		this.offset = offset;
 	}	
 }
