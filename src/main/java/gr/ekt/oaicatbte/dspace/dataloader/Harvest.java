@@ -240,7 +240,7 @@ public class Harvest
 		}
 		
 		if (scopes == null || scopes.size()==0){
-			query = queryGen + "ORDER BY A.resource_id";
+			query = queryGen + "ORDER BY resource_id";
 			
 			for (Object s : parametersGen){
 				parameters.add(s);

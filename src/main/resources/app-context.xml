@@ -6,6 +6,7 @@
 	<bean id="transformationEngine" class="gr.ekt.transformationengine.core.TransformationEngine">
 		<property name="dataLoader" ref="dataloader" />
 		<property name="workflow" ref = "conjunctionTransformationWorkflow"/>
+		<property name="outputGenerator" ref = "outputGenerator"/>
 	</bean>
 
 	<bean id="dataloader" class="gr.ekt.oaicatbte.dspace.dataloader.DSpaceDataLoader">
@@ -20,4 +21,8 @@
 			</list>
 		</property>
 	</bean>
+	
+	<bean id="outputGenerator" class="gr.ekt.oaicatbte.dspace.dataloader.OAIOutputGenerator">
+	</bean>
+	
 </beans>

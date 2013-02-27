@@ -16,8 +16,10 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.handle.HandleManager;
+import org.dspace.search.HarvestedItemInfo;
 
 import ORG.oclc.oai.server.verb.BadResumptionTokenException;
+import gr.ekt.oaicatbte.OAIDataLoadingSpec;
 import gr.ekt.transformationengine.core.DataLoader;
 import gr.ekt.transformationengine.core.RecordSet;
 
@@ -43,87 +45,41 @@ public class DSpaceDataLoader extends DataLoader {
 	public RecordSet loadData() {
 
 		Context context = null;
-
+		
+		RecordSet recordSet = new RecordSet();
+		
 		try
 		{
 			context = new Context();
 
-			DSpaceDataLoadingSpec dspaceDataLoadingSpec = (DSpaceDataLoadingSpec)this.getLoadingSpec();
-			ArrayList<DSpaceObject> scopes = resolveSets(context, dspaceDataLoadingSpec.getSets());
+			OAIDataLoadingSpec oaiDataLoadingSpec = (OAIDataLoadingSpec)this.getLoadingSpec();
+			ArrayList<DSpaceObject> scopes = resolveSets(context, oaiDataLoadingSpec.getSets());
 
 			boolean includeAll = ConfigurationManager.getBooleanProperty("harvest.includerestricted.oai", true);
 
-			List itemInfos2 = Harvest.harvest(context, scopes, null, null, dspaceDataLoadingSpec.getOffset(), dspaceDataLoadingSpec.getMax(), true, true, true, includeAll); // Need items, containers + withdrawals*/
+			log.info("Calling harvesetr");
+			List itemInfos2 = Harvest.harvest(context, scopes, null, null, oaiDataLoadingSpec.getOffset(), oaiDataLoadingSpec.getMax(), true, true, true, includeAll); // Need items, containers + withdrawals*/
+			log.info("harvester ended: total size="+itemInfos2.size());
+			
+			for (Object itemInfo : itemInfos2){
+				DSpaceRecord record = new DSpaceRecord((HarvestedItemInfo)itemInfo);
+				recordSet.addRecord(record);
+			}
 			
 			log.info("OAI: items: " + itemInfos2.size());
 
 		}catch (Exception e){
 			e.printStackTrace();
 		}
-		finally {
+		/*finally {
 			try {
 				context.complete();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-		}
+		}*/
 
-		return null;
-	}
-
-	private Object[] decodeResumptionToken(String token)
-			throws BadResumptionTokenException
-			{
-		Object[] obj = new Object[5];
-		StringTokenizer st = new StringTokenizer(token, "/", true);
-
-		try
-		{
-			// Extract from, until, set, prefix
-			for (int i = 0; i < 4; i++)
-			{
-				if (!st.hasMoreTokens())
-				{
-					throw new BadResumptionTokenException();
-				}
-
-				String s = st.nextToken();
-
-				// If this value is a delimiter /, we have no value for this
-				// part
-				// of the resumption token.
-				if (s.equals("/"))
-				{
-					obj[i] = null;
-				}
-				else
-				{
-					obj[i] = s;
-
-					// Skip the delimiter
-					st.nextToken();
-				}
-
-				log.debug("is: " + (String) obj[i]);
-			}
-
-			if (!st.hasMoreTokens())
-			{
-				throw new BadResumptionTokenException();
-			}
-
-			obj[4] = new Integer(st.nextToken());
-		}
-		catch (NumberFormatException nfe)
-		{
-			throw new BadResumptionTokenException();
-		}
-		catch (NoSuchElementException nsee)
-		{
-			throw new BadResumptionTokenException();
-		}
-
-		return obj;
+		return recordSet;
 	}
 
 	private ArrayList<DSpaceObject> resolveSets(Context context, List<String> sets){
