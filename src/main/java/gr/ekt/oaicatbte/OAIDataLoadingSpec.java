@@ -3,8 +3,6 @@
  */
 package gr.ekt.oaicatbte;
 
-import java.util.List;
-
 import gr.ekt.transformationengine.dataloaders.DataLoadingSpec;
 
 /**
@@ -13,11 +11,11 @@ import gr.ekt.transformationengine.dataloaders.DataLoadingSpec;
  */
 public class OAIDataLoadingSpec extends DataLoadingSpec {
 
-	private List<String> sets;
+	private String set;
 	private int max;
 	private int offset;
-	
-	private String resumptionToken;
+	private String from;
+	private String until;
 	
 	/**
 	 * 
@@ -25,11 +23,13 @@ public class OAIDataLoadingSpec extends DataLoadingSpec {
 	public OAIDataLoadingSpec() {
 	}
 
-	public OAIDataLoadingSpec(List<String> sets, int max, int offset) {
+	public OAIDataLoadingSpec(String set, int max, int offset, String from, String until) {
 		super();
-		this.sets = sets;
+		this.set = set;
 		this.max = max;
 		this.offset = offset;
+		this.from = from;
+		this.until = until;
 	}
 	
 	public OAIDataLoadingSpec(String resumptionToken) {
@@ -41,15 +41,15 @@ public class OAIDataLoadingSpec extends DataLoadingSpec {
 	 */
 	@Override
 	public DataLoadingSpec generateNextLoadingSpec() {
-		return new OAIDataLoadingSpec(sets, max, offset+max);
+		return new OAIDataLoadingSpec(set, max, offset+max, from, until);
 	}
 
-	public List<String> getSets() {
-		return sets;
+	public String getSet() {
+		return set;
 	}
 
-	public void setSets(List<String> sets) {
-		this.sets = sets;
+	public void setSets(String set) {
+		this.set = set;
 	}
 
 	public int getMax() {
@@ -66,5 +66,21 @@ public class OAIDataLoadingSpec extends DataLoadingSpec {
 
 	public void setOffset(int offset) {
 		this.offset = offset;
+	}
+
+	public String getFrom() {
+		return from;
+	}
+
+	public void setFrom(String from) {
+		this.from = from;
+	}
+
+	public String getUntil() {
+		return until;
+	}
+
+	public void setUntil(String until) {
+		this.until = until;
 	}	
 }

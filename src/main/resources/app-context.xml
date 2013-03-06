@@ -25,4 +25,31 @@
 	<bean id="outputGenerator" class="gr.ekt.oaicatbte.dspace.dataloader.OAIOutputGenerator">
 	</bean>
 	
+	<bean id="metadata-prefix-mapping" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="oai_dc" value-ref="outputGenerator"/>
+				<entry key="rdf" value-ref="outputGenerator"/>
+				<entry key="ese" value-ref="outputGenerator"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="virtual-sets" class="java.util.ArrayList">
+		<constructor-arg>
+			<list>
+				<map>
+					<entry key="name" value="driver" />
+					<entry key="setSpec" value="driver" />
+					<entry key="filters" value-ref="outputGenerator" />
+				</map>
+				<map>
+					<entry key="name" value="voa3r" />
+					<entry key="setSpec" value="voa3r" />
+					<entry key="filters" value-ref="outputGenerator" />
+				</map>
+			</list>
+		</constructor-arg>
+	</bean> 
+	
 </beans>

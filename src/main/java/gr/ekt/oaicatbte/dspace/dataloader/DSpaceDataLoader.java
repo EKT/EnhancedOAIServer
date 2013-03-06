@@ -53,7 +53,7 @@ public class DSpaceDataLoader extends DataLoader {
 			context = new Context();
 
 			OAIDataLoadingSpec oaiDataLoadingSpec = (OAIDataLoadingSpec)this.getLoadingSpec();
-			ArrayList<DSpaceObject> scopes = resolveSets(context, oaiDataLoadingSpec.getSets());
+			ArrayList<DSpaceObject> scopes = resolveSets(context, oaiDataLoadingSpec.getSet());
 
 			boolean includeAll = ConfigurationManager.getBooleanProperty("harvest.includerestricted.oai", true);
 
@@ -82,16 +82,16 @@ public class DSpaceDataLoader extends DataLoader {
 		return recordSet;
 	}
 
-	private ArrayList<DSpaceObject> resolveSets(Context context, List<String> sets){
+	private ArrayList<DSpaceObject> resolveSets(Context context, String set){
 		ArrayList<DSpaceObject> result = new ArrayList<DSpaceObject>();
-		if (sets == null) 
+		if (set == null) 
 			return null;
-		for (String set : sets){
+		//for (String set : sets){
 
-			if (set == null)
+			/*if (set == null)
 			{
 				continue;
-			}
+			}*/
 
 			DSpaceObject o = null;
 
@@ -117,7 +117,7 @@ public class DSpaceDataLoader extends DataLoader {
 			{
 				result.add(o);
 			}
-		}
+		//}
 		return result;
 	}
 
