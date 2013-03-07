@@ -1,5 +1,6 @@
 package gr.ekt.oaicatbte;
 
+import gr.ekt.transformationengine.core.Filter;
 import gr.ekt.transformationengine.core.OutputGenerator;
 import gr.ekt.transformationengine.core.TransformationEngine;
 import gr.ekt.transformationengine.exceptions.UnimplementedAbstractMethod;
@@ -10,23 +11,25 @@ import gr.ekt.transformationengine.exceptions.UnsupportedCriterion;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
-import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import ORG.oclc.oai.server.catalog.AbstractCatalog;
+import ORG.oclc.oai.server.crosswalk.Crosswalk;
+import ORG.oclc.oai.server.crosswalk.CrosswalkItem;
+import ORG.oclc.oai.server.crosswalk.Crosswalks;
 import ORG.oclc.oai.server.verb.BadArgumentException;
 import ORG.oclc.oai.server.verb.BadResumptionTokenException;
 import ORG.oclc.oai.server.verb.CannotDisseminateFormatException;
 import ORG.oclc.oai.server.verb.IdDoesNotExistException;
 import ORG.oclc.oai.server.verb.NoItemsMatchException;
-import ORG.oclc.oai.server.verb.NoMetadataFormatsException;
 import ORG.oclc.oai.server.verb.NoSetHierarchyException;
 import ORG.oclc.oai.server.verb.OAIInternalServerError;
 
@@ -37,6 +40,8 @@ public abstract class BTECatalog extends AbstractCatalog {
 
 	private ClassPathXmlApplicationContext context = null;
 
+	//private OutputGenerator userOutputGenerator;
+
 	@Override
 	public String getRecord(String arg0, String arg1)
 			throws IdDoesNotExistException, CannotDisseminateFormatException,
@@ -46,16 +51,39 @@ public abstract class BTECatalog extends AbstractCatalog {
 	}
 
 	@Override
-	public Map listIdentifiers(String arg0) throws BadResumptionTokenException,
+	public Map listIdentifiers(String resumptionToken) throws BadResumptionTokenException,
 	OAIInternalServerError {
+		Object[] parts = decodeResumptionToken(resumptionToken);
+		String from = (String)parts[0];
+		String until = (String)parts[1];
+		String set = (String)parts[2];
+		String metadataPrefix = (String)parts[3];
+		int offset = (Integer)parts[4];
+
+		OAIDataLoadingSpec ls = new OAIDataLoadingSpec(set, 100, offset, from, until);
+
+		try {
+			return listRecords(ls, metadataPrefix, true, true);
+		} catch (CannotDisseminateFormatException e) {
+			e.printStackTrace();
+			log.info("SHOULD NOT BE HERE!");
+		}
 		return null;
 	}
 
 	@Override
-	public Map listIdentifiers(String arg0, String arg1, String arg2,
-			String arg3) throws BadArgumentException,
+	public Map listIdentifiers(String from, String until, String set,
+			String metadataPrefix) throws BadArgumentException,
 			CannotDisseminateFormatException, NoItemsMatchException,
 			NoSetHierarchyException, OAIInternalServerError {
+		OAIDataLoadingSpec ls = new OAIDataLoadingSpec(set, 100, 0, from, until);
+
+		try {
+			return listRecords(ls, metadataPrefix, false, true);
+		} catch (BadResumptionTokenException e) {
+			e.printStackTrace();
+			log.info("SHOULD NOT BE HERE!");
+		}
 		return null;
 	}
 
@@ -65,13 +93,25 @@ public abstract class BTECatalog extends AbstractCatalog {
 	}
 
 	@Override
-	public Vector getSchemaLocations(String arg0)
-			throws IdDoesNotExistException, NoMetadataFormatsException,
-			OAIInternalServerError {
-		
-		//return getRecordFactory().getCrosswalks().;
-		
-		return null;
+	public Crosswalks getCrosswalks() {
+		Map crosswalksMap = new HashMap();
+
+		if (context==null){
+			try {
+				context = new ClassPathXmlApplicationContext("app-context.xml");
+			} catch (BeansException e) {
+				return null;
+			}
+		}
+		HashMap<String, Crosswalk> crosswalks = (HashMap<String, Crosswalk>)context.getBean("crosswalks");
+
+		for (String schemaLabel : crosswalks.keySet()){
+			Crosswalk crosswalk = crosswalks.get(schemaLabel);
+			CrosswalkItem crosswalkItem = new CrosswalkItem(schemaLabel, crosswalk.getSchemaURL(), crosswalk.getNamespaceURL(), crosswalk);
+			crosswalksMap.put(schemaLabel, crosswalkItem);
+		}
+
+		return new Crosswalks(crosswalksMap);
 	}
 
 	@Override
@@ -81,11 +121,10 @@ public abstract class BTECatalog extends AbstractCatalog {
 			NoSetHierarchyException, OAIInternalServerError {
 
 		OAIDataLoadingSpec ls = new OAIDataLoadingSpec(set, 100, 0, from, until);
-		
+
 		try {
-			return listRecords(ls, metadataPrefix, false);
+			return listRecords(ls, metadataPrefix, false, false);
 		} catch (BadResumptionTokenException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			log.info("SHOULD NOT BE HERE!");
 		}
@@ -104,11 +143,10 @@ public abstract class BTECatalog extends AbstractCatalog {
 		int offset = (Integer)parts[4];
 
 		OAIDataLoadingSpec ls = new OAIDataLoadingSpec(set, 100, offset, from, until);
-		
+
 		try {
-			return listRecords(ls, metadataPrefix, true);
+			return listRecords(ls, metadataPrefix, true, false);
 		} catch (CannotDisseminateFormatException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			log.info("SHOULD NOT BE HERE!");
 		}
@@ -120,13 +158,12 @@ public abstract class BTECatalog extends AbstractCatalog {
 	OAIInternalServerError {
 
 		ArrayList<String> resultSets = new ArrayList<String>();
-		
+
 		//Return here all virtual sets
 		if (context==null){
 			try {
 				context = new ClassPathXmlApplicationContext("app-context.xml");
 			} catch (BeansException e) {
-				// TODO Auto-generated catch block
 				throw new OAIInternalServerError(e.getMessage());
 			}
 		}
@@ -135,7 +172,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 		for (HashMap<String, Object> set : virtualSets){
 			String name = (String)set.get("name");
 			String setSpec = (String)set.get("setSpec");
-			
+
 			specB = new StringBuffer("<set><setSpec>");
 			specB.append(setSpec);
 			specB.append("</setSpec>");
@@ -143,17 +180,17 @@ public abstract class BTECatalog extends AbstractCatalog {
 			specB.append(name);
 			specB.append("</setName>");
 			specB.append("</set>");
-			
+
 			resultSets.add(specB.toString());
 		}
-		
+
 		//Get all the normal sets fron the extenders
 		Map<String, String> sets = listAllSets();
 		if (sets!=null){
 			StringBuffer spec = null;
 			for (String setSpec : sets.keySet()){
 				String name = sets.get(setSpec);
-				
+
 				spec = new StringBuffer("<set><setSpec>");
 				spec.append(setSpec);
 				spec.append("</setSpec>");
@@ -161,21 +198,21 @@ public abstract class BTECatalog extends AbstractCatalog {
 				spec.append(name);
 				spec.append("</setName>");
 				spec.append("</set>");
-				
+
 				resultSets.add(spec.toString());
 			}
 		}
-		
+
 		Map results = new HashMap();
 		results.put("sets", resultSets.iterator());
 
 		for (String s : resultSets){
 			System.out.println(s);
 		}
-		
+
 		return results;
 	}
-	
+
 	/**
 	 * Not yet supported - We aren't supposed to get a list sets request with resumption token... are we?
 	 */
@@ -191,32 +228,41 @@ public abstract class BTECatalog extends AbstractCatalog {
 	 */
 	public abstract Map<String, String> listAllSets() throws NoSetHierarchyException, OAIInternalServerError;
 
-	private Map listRecords(OAIDataLoadingSpec dataLoadingSpec, String metadataPrefix, boolean resumption) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{
+	private Map listRecords(OAIDataLoadingSpec dataLoadingSpec, String metadataPrefix, boolean resumption, boolean onlyHeader) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{
 		//Instantiate a new BTE
-		if (context==null){
+		//if (context==null){
 			try {
 				context = new ClassPathXmlApplicationContext("app-context.xml");
 			} catch (BeansException e) {
-				// TODO Auto-generated catch block
 				throw new OAIInternalServerError(e.getMessage());
 			}
-		}
+		//}
 
 		Object teObject = context.getBean("transformationEngine");
 		if (teObject==null || !(teObject instanceof TransformationEngine))
 			throw new OAIInternalServerError("Could not find the transformation engine!");
 		TransformationEngine te = (TransformationEngine)teObject;
-		
-		OutputGenerator outputGenerator = resolveOutpuGenerator(metadataPrefix, resumption);
+
+		OutputGenerator outputGenerator = resolveOutpuGenerator(metadataPrefix, resumption, onlyHeader);
+		List<Filter> filters = resolveFilters(dataLoadingSpec.getSet());
 
 		te.getDataLoader().setLoadingSpec(dataLoadingSpec);
 		te.setOutputGenerator(outputGenerator);
 
+		if (filters!=null){
+			for (Filter filter : filters){
+				te.getWorkflow().addStep(filter);
+			}
+		}
+		
 		try {
 			List<String> results =  te.transform();
 
 			Map<String, Object> returnMap = new HashMap<String, Object>();
-			returnMap.put("records", results.iterator());
+			if (onlyHeader)
+				returnMap.put("headers", results.iterator());
+			else
+				returnMap.put("records", results.iterator());
 			HashMap<String, String> resumptionTokenMap = new HashMap<String, String>();
 			resumptionTokenMap.put("resumptionToken", dataLoadingSpec.getFrom()+"/"+dataLoadingSpec.getUntil()+"/"+(dataLoadingSpec.getSet()!=null?dataLoadingSpec.getSet():"")+"/"+metadataPrefix+"/"+(dataLoadingSpec.getOffset()+dataLoadingSpec.getMax()));
 
@@ -226,19 +272,14 @@ public abstract class BTECatalog extends AbstractCatalog {
 			return returnMap;
 
 		} catch (UnknownClassifierException e) {
-			//e.printStackTrace();
 			throw new OAIInternalServerError(e.getMessage());
 		} catch (UnknownInputFileType e) {
-			//e.printStackTrace();
 			throw new OAIInternalServerError(e.getMessage());
 		} catch (UnimplementedAbstractMethod e) {
-			//e.printStackTrace();
 			throw new OAIInternalServerError(e.getMessage());
 		} catch (UnsupportedComparatorMode e) {
-			//e.printStackTrace();
 			throw new OAIInternalServerError(e.getMessage());
 		} catch (UnsupportedCriterion e) {
-			//e.printStackTrace();
 			throw new OAIInternalServerError(e.getMessage());
 		}
 	}
@@ -298,32 +339,77 @@ public abstract class BTECatalog extends AbstractCatalog {
 		return obj;
 			}
 
-	private OutputGenerator resolveOutpuGenerator(String metadataPrefix, boolean resumption) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{
+	private OutputGenerator resolveOutpuGenerator(String metadataPrefix, boolean resumption, boolean onlyHeader) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{
 
-		if (context==null){
-			try {
-				context = new ClassPathXmlApplicationContext("app-context.xml");
-			} catch (BeansException e) {
-				// TODO Auto-generated catch block
-				throw new OAIInternalServerError(e.getMessage());
-			}
-		}
-		
-		Map<String, Object> metadataPrefixMapping = (Map<String, Object>)context.getBean("metadata-prefix-mapping");
+		/*try {
+			Map<String, OutputGenerator> outputGenerators = context.getBeansOfType(OutputGenerator.class);
+			userOutputGenerator = 
+			return userOutputGenerator;
+		} catch (BeansException e) {
 
-		if (!metadataPrefixMapping.containsKey(metadataPrefix)){
+		}*/
+
+		OAIOutputGenerator userOutputGenerator = new OAIOutputGenerator();
+		userOutputGenerator.setOnlyHeader(onlyHeader);
+
+		Crosswalks crosswalks = getCrosswalks();
+		if (!crosswalks.containsValue(metadataPrefix)){
 			if (resumption)
 				throw new BadResumptionTokenException();
 			else 
 				throw new CannotDisseminateFormatException(metadataPrefix);
 		}
+		Iterator crosswalksIterator = crosswalks.iterator();
 
-		Object outputGeneratorObject = metadataPrefixMapping.get(metadataPrefix);
-		if (!(outputGeneratorObject instanceof OutputGenerator)){
-			throw new OAIInternalServerError("metadata-prefix-mapping should be a map of metadata prefixes to BTE OutputGenerators!");
+		while (crosswalksIterator.hasNext()){
+			Map.Entry<String, CrosswalkItem> entry = (Map.Entry<String, CrosswalkItem>) crosswalksIterator.next();
+			String schema = entry.getKey();
+			Crosswalk crosswalk = entry.getValue().getCrosswalk();
+
+			if (schema.equals(metadataPrefix)){
+				((OAIOutputGenerator)userOutputGenerator).setCrosswalk(crosswalk);
+				break;
+			}
 		}
 
-		return (OutputGenerator)outputGeneratorObject;
+		return userOutputGenerator;
 	}
+
+	private List<Filter> resolveFilters(String set){
+		
+		if (set==null)
+			return null;
+		
+		//Return here all virtual sets
+		if (context==null){
+			try {
+				context = new ClassPathXmlApplicationContext("app-context.xml");
+			} catch (BeansException e) {
+				return null;
+			}
+		}
+		List<HashMap<String, Object>> virtualSets = (List<HashMap<String, Object>>)context.getBean("virtual-sets");
+		
+		for (HashMap<String, Object> map: virtualSets){
+			String setSpec = (String) map.get("setSpec");
+			if (setSpec.equals(set)){
+				List<Filter> filters = (ArrayList<Filter>)map.get("filters");
+				return filters;
+			}
+		}
+		
+		return null;
+		
+	}
+
+	/*public OutputGenerator getUserOutputGenerator() {
+		return userOutputGenerator;
+	}
+
+	public void setUserOutputGenerator(OutputGenerator userOutputGenerator) {
+		this.userOutputGenerator = userOutputGenerator;
+	}*/
+
+
 
 }

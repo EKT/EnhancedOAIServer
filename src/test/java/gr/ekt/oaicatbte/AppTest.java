@@ -4,6 +4,7 @@ import gr.ekt.oaicatbte.dspace.dataloader.DSpaceBTEOAICatalog;
 
 import java.util.Map;
 
+import ORG.oclc.oai.server.crosswalk.Crosswalks;
 import ORG.oclc.oai.server.verb.BadArgumentException;
 import ORG.oclc.oai.server.verb.CannotDisseminateFormatException;
 import ORG.oclc.oai.server.verb.NoItemsMatchException;
@@ -45,7 +46,11 @@ extends TestCase
 		DSpaceBTEOAICatalog catalog = new DSpaceBTEOAICatalog(null);
 		try {
 			catalog.listRecords(null, null, null, "oai_dc");
+			catalog.listRecords(null, null, "voa3r", "oai_dc");
+			catalog.listRecords(null, null, null, "oai_dc");
 			catalog.listSets();
+			//Crosswalks crosswalks = catalog.getCrosswalks();
+			//System.out.println("test");
 		} catch (BadArgumentException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

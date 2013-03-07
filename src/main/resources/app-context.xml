@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+
+	<context:annotation-config />
+
+	<context:component-scan base-package="gr.ekt.oaicatbte" />
 
 	<bean id="transformationEngine" class="gr.ekt.transformationengine.core.TransformationEngine">
 		<property name="dataLoader" ref="dataloader" />
 		<property name="workflow" ref = "conjunctionTransformationWorkflow"/>
-		<property name="outputGenerator" ref = "outputGenerator"/>
 	</bean>
 
 	<bean id="dataloader" class="gr.ekt.oaicatbte.dspace.dataloader.DSpaceDataLoader">
@@ -21,19 +26,24 @@
 			</list>
 		</property>
 	</bean>
-	
-	<bean id="outputGenerator" class="gr.ekt.oaicatbte.dspace.dataloader.OAIOutputGenerator">
-	</bean>
-	
-	<bean id="metadata-prefix-mapping" class="java.util.HashMap">
+		
+	<bean id="crosswalks" class="java.util.HashMap">
 		<constructor-arg>
 			<map>
-				<entry key="oai_dc" value-ref="outputGenerator"/>
-				<entry key="rdf" value-ref="outputGenerator"/>
-				<entry key="ese" value-ref="outputGenerator"/>
+				<entry key="oai_dc" value-ref="oaidc-crosswalk"/>
+				<entry key="rdf" value-ref="oaidc-crosswalk"/>
+				<entry key="ese" value-ref="oaidc-crosswalk"/>
 			</map>
 		</constructor-arg>
 	</bean>
+	
+	<bean id="oaidc-crosswalk" class="gr.ekt.oaicatbte.dspace.dataloader.OAIDCCrosswalk">
+		<constructor-arg>
+			<value>http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="filter1" class="gr.ekt.oaicatbte.dspace.dataloader.TestFilter"/>
 	
 	<bean id="virtual-sets" class="java.util.ArrayList">
 		<constructor-arg>
@@ -41,15 +51,22 @@
 				<map>
 					<entry key="name" value="driver" />
 					<entry key="setSpec" value="driver" />
-					<entry key="filters" value-ref="outputGenerator" />
+					<entry key="filters" value-ref="driver-filters"/>
 				</map>
 				<map>
 					<entry key="name" value="voa3r" />
 					<entry key="setSpec" value="voa3r" />
-					<entry key="filters" value-ref="outputGenerator" />
+					<entry key="filters" value-ref="driver-filters" />
 				</map>
 			</list>
 		</constructor-arg>
 	</bean> 
 	
+	<bean id="driver-filters" class="java.util.ArrayList">
+		<constructor-arg>
+			<list>
+				<ref bean="filter1"/>
+			</list>
+		</constructor-arg>
+	</bean>
 </beans>

@@ -32,6 +32,8 @@ public class DSpaceDataLoader extends DataLoader {
 	// Define a static logger variable
 	static Logger log = Logger.getLogger(DSpaceDataLoader.class);
 
+	Context context = null;
+	
 	/**
 	 * 
 	 */
@@ -44,13 +46,12 @@ public class DSpaceDataLoader extends DataLoader {
 	@Override
 	public RecordSet loadData() {
 
-		Context context = null;
-		
 		RecordSet recordSet = new RecordSet();
 		
 		try
 		{
-			context = new Context();
+			if (context==null)
+				context = new Context();
 
 			OAIDataLoadingSpec oaiDataLoadingSpec = (OAIDataLoadingSpec)this.getLoadingSpec();
 			ArrayList<DSpaceObject> scopes = resolveSets(context, oaiDataLoadingSpec.getSet());
