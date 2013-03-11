@@ -9,18 +9,11 @@
 
 	<context:component-scan base-package="gr.ekt.oaicatbte" />
 
-	<bean id="transformationEngine" class="gr.ekt.transformationengine.core.TransformationEngine">
-		<property name="dataLoader" ref="dataloader" />
-		<property name="workflow" ref = "conjunctionTransformationWorkflow"/>
-	</bean>
-
-	<bean id="dataloader" class="gr.ekt.oaicatbte.dspace.dataloader.DSpaceDataLoader">
-		
-	</bean>
+	<bean id="dataloader" class="gr.ekt.oaicatbte.dspace.DSpaceDataLoader"/>
 
 	<bean id="conjunctionTransformationWorkflow"
-		class="gr.ekt.transformationengine.core.ConjunctionTransformationWorkflow">
-		<property name="steps">
+		class="gr.ekt.bte.core.LinearWorkflow">
+		<property name="process">
 			<list>
 				
 			</list>
@@ -37,13 +30,17 @@
 		</constructor-arg>
 	</bean>
 	
-	<bean id="oaidc-crosswalk" class="gr.ekt.oaicatbte.dspace.dataloader.OAIDCCrosswalk">
+	<bean id="oaidc-crosswalk" class="gr.ekt.oaicatbte.dspace.OAIDCCrosswalk">
 		<constructor-arg>
 			<value>http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd</value>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="filter1" class="gr.ekt.oaicatbte.dspace.dataloader.TestFilter"/>
+	<bean id="filter1" class="gr.ekt.oaicatbte.dspace.TestFilter">
+		<constructor-arg>
+			<value>Test Filter</value>
+		</constructor-arg>
+	</bean>
 	
 	<bean id="virtual-sets" class="java.util.ArrayList">
 		<constructor-arg>

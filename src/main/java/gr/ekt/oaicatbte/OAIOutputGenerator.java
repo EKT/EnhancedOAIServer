@@ -1,21 +1,20 @@
 package gr.ekt.oaicatbte;
 
+import gr.ekt.bte.core.DataOutputSpec;
+import gr.ekt.bte.core.OutputGenerator;
+import gr.ekt.bte.core.Record;
+import gr.ekt.bte.core.RecordSet;
+import gr.ekt.bte.core.Value;
+
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.regex.Matcher;
+import java.util.List;
 import java.util.regex.Pattern;
-
-import org.dspace.content.DCValue;
-import org.dspace.content.Item;
-import org.dspace.core.ConfigurationManager;
 
 import ORG.oclc.oai.server.crosswalk.Crosswalk;
 import ORG.oclc.oai.server.verb.CannotDisseminateFormatException;
+import ORG.oclc.oai.server.verb.OAIInternalServerError;
 
-import gr.ekt.oaicatbte.dspace.dataloader.DSpaceRecord;
-import gr.ekt.transformationengine.core.OutputGenerator;
-import gr.ekt.transformationengine.core.Record;
-import gr.ekt.transformationengine.core.RecordSet;
 
 /**
  * 
@@ -23,7 +22,7 @@ import gr.ekt.transformationengine.core.RecordSet;
  * @author Nikos Houssos (nhoussos@ekt.gr) 
  * @copyright 2011 - National Documentation Center
  */
-public class OAIOutputGenerator extends OutputGenerator {
+public class OAIOutputGenerator implements OutputGenerator {
 
 	// Pattern containing all the characters we want to filter out / replace
 	// converting a String to xml
@@ -44,27 +43,35 @@ public class OAIOutputGenerator extends OutputGenerator {
 	 * Default constructor
 	 */
 	public OAIOutputGenerator() {
-		// TODO Auto-generated constructor stub
 	}
 
-
-	@Override
-	public boolean generateOutput(RecordSet recordSet) {
-		// TODO Auto-generated method stub
-		return false;
+	public List<String> generateOutput(RecordSet recs) {
+		return generateOutput(recs, null);
 	}
 
-	@Override
-	public ArrayList<String> generateOAIOutput(RecordSet recordSet) {
+	public List<String> generateOutput(RecordSet recs, DataOutputSpec spec) {
+
 		ArrayList<String> tmp = new ArrayList<String>();
 
-		for (Record record : recordSet.getRecords()){
+		for (Record record : recs.getRecords()){
 			StringBuffer xmlRec = new StringBuffer();
 			if (!onlyHeader)
 				xmlRec.append("<record>");
+			
+			List<Value> identifiers = record.getValues("identifier");
+			if (identifiers==null || identifiers.size()==0){
+				try {
+					throw new OAIInternalServerError("Your implementation of BTE Record must return a Value for \"identifier\" field name!");
+				} catch (OAIInternalServerError e) {
+					e.printStackTrace();
+					return null;
+				}
+			}
+			String identifier = identifiers.get(0).getAsString();
+			
 			xmlRec.append("<header>");
 			xmlRec.append("<identifier>");
-			xmlRec.append("oai:"+ConfigurationManager.getProperty("dspace.hostname")+":"+((DSpaceRecord)record).getDspaceHarvestedItemInfo().item.getHandle());
+			xmlRec.append("oai:"+identifier);
 			xmlRec.append("</identifier>");
 			xmlRec.append("<datestamp>");
 			xmlRec.append((new Date()).toString());
@@ -72,19 +79,18 @@ public class OAIOutputGenerator extends OutputGenerator {
 			xmlRec.append("</header>");
 			if (!onlyHeader){
 				xmlRec.append("<metadata>");
-				xmlRec.append(this.createMetadata((DSpaceRecord)record));
+				xmlRec.append(this.createMetadata(record));
 				xmlRec.append("</metadata>");
 				xmlRec.append("</record>");
 			}
 
 			tmp.add(xmlRec.toString());
 		}
-
+		
 		return tmp;
-		//return true;
 	}
 
-	public String createMetadata(DSpaceRecord record)
+	public String createMetadata(Record record)
 	{
 		if (crosswalk!=null){
 			try {
@@ -98,7 +104,6 @@ public class OAIOutputGenerator extends OutputGenerator {
 			return "";
 		}
 	}
-
 
 	public Crosswalk getCrosswalk() {
 		return crosswalk;

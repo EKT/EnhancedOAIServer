@@ -23,7 +23,6 @@
 			<attribute name="org.eclipse.jst.component.nondependency" value=""/>
 		</attributes>
 	</classpathentry>
-	<classpathentry combineaccessrules="false" kind="src" path="/biblio-transformation-engine-oai"/>
 	<classpathentry kind="lib" path="src/main/resources/postgresql-9.1-901.jdbc4.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

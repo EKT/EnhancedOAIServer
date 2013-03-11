@@ -1,11 +1,4 @@
-/**
- * The contents of this file are subject to the license and copyright
- * detailed in the LICENSE and NOTICE files at the root of the source
- * tree and available online at
- *
- * http://www.dspace.org/license/
- */
-package gr.ekt.oaicatbte.dspace.dataloader;
+package gr.ekt.oaicatbte.dspace;
 
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -13,7 +6,6 @@ import java.util.regex.Pattern;
 
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
-import org.dspace.search.HarvestedItemInfo;
 
 import ORG.oclc.oai.server.crosswalk.Crosswalk;
 import ORG.oclc.oai.server.verb.CannotDisseminateFormatException;

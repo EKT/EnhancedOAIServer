@@ -1,21 +1,28 @@
 package gr.ekt.oaicatbte;
 
-import gr.ekt.transformationengine.core.Filter;
-import gr.ekt.transformationengine.core.OutputGenerator;
-import gr.ekt.transformationengine.core.TransformationEngine;
-import gr.ekt.transformationengine.exceptions.UnimplementedAbstractMethod;
-import gr.ekt.transformationengine.exceptions.UnknownClassifierException;
-import gr.ekt.transformationengine.exceptions.UnknownInputFileType;
-import gr.ekt.transformationengine.exceptions.UnsupportedComparatorMode;
-import gr.ekt.transformationengine.exceptions.UnsupportedCriterion;
+import gr.ekt.bte.core.AbstractFilter;
+import gr.ekt.bte.core.DataLoader;
+import gr.ekt.bte.core.LinearWorkflow;
+import gr.ekt.bte.core.OutputGenerator;
+import gr.ekt.bte.core.TransformationEngine;
+import gr.ekt.bte.core.TransformationResult;
+import gr.ekt.bte.core.TransformationSpec;
+import gr.ekt.bte.core.Workflow;
+import gr.ekt.bte.exceptions.BadTransformationSpec;
 
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
@@ -40,13 +47,24 @@ public abstract class BTECatalog extends AbstractCatalog {
 
 	private ClassPathXmlApplicationContext context = null;
 
-	//private OutputGenerator userOutputGenerator;
-
 	@Override
-	public String getRecord(String arg0, String arg1)
+	public String getRecord(String identifier, String metadataPrefix)
 			throws IdDoesNotExistException, CannotDisseminateFormatException,
 			OAIInternalServerError {
 
+		TransformationSpec ts = new TransformationSpec(identifier);
+		ts.setNumberOfRecords(1);
+		Iterator<String> iter;
+		try {
+			iter = (Iterator<String>)listRecords(ts, metadataPrefix, false, false, false).get("records");
+			if (iter.hasNext())
+				return iter.next();
+			return null;
+		} catch (BadResumptionTokenException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			log.info("SHOULD NOT BE HERE!");
+		}
 		return null;
 	}
 
@@ -60,14 +78,16 @@ public abstract class BTECatalog extends AbstractCatalog {
 		String metadataPrefix = (String)parts[3];
 		int offset = (Integer)parts[4];
 
-		OAIDataLoadingSpec ls = new OAIDataLoadingSpec(set, 100, offset, from, until);
-
 		try {
-			return listRecords(ls, metadataPrefix, true, true);
+			TransformationSpec ts = new TransformationSpec(100, offset, set, encodeDate(from), encodeDate(until));
+			return listRecords(ts, metadataPrefix, true, true, true);
 		} catch (CannotDisseminateFormatException e) {
 			e.printStackTrace();
 			log.info("SHOULD NOT BE HERE!");
+		}catch (ParseException e) {
+			throw new OAIInternalServerError(e.getMessage());
 		}
+
 		return null;
 	}
 
@@ -76,13 +96,16 @@ public abstract class BTECatalog extends AbstractCatalog {
 			String metadataPrefix) throws BadArgumentException,
 			CannotDisseminateFormatException, NoItemsMatchException,
 			NoSetHierarchyException, OAIInternalServerError {
-		OAIDataLoadingSpec ls = new OAIDataLoadingSpec(set, 100, 0, from, until);
 
 		try {
-			return listRecords(ls, metadataPrefix, false, true);
+			TransformationSpec ts = new TransformationSpec(100, 0, set, encodeDate(from), encodeDate(until));
+			return listRecords(ts, metadataPrefix, false, true, true);
 		} catch (BadResumptionTokenException e) {
 			e.printStackTrace();
 			log.info("SHOULD NOT BE HERE!");
+		}
+		catch (ParseException e) {
+			throw new OAIInternalServerError(e.getMessage());
 		}
 		return null;
 	}
@@ -120,13 +143,15 @@ public abstract class BTECatalog extends AbstractCatalog {
 			CannotDisseminateFormatException, NoItemsMatchException,
 			NoSetHierarchyException, OAIInternalServerError {
 
-		OAIDataLoadingSpec ls = new OAIDataLoadingSpec(set, 100, 0, from, until);
-
 		try {
-			return listRecords(ls, metadataPrefix, false, false);
+			TransformationSpec ts = new TransformationSpec(100, 0, set, encodeDate(from), encodeDate(until));
+			return listRecords(ts, metadataPrefix, false, false, true);
 		} catch (BadResumptionTokenException e) {
 			e.printStackTrace();
 			log.info("SHOULD NOT BE HERE!");
+		}
+		catch (ParseException e) {
+			throw new OAIInternalServerError(e.getMessage());
 		}
 		return null;
 	}
@@ -142,13 +167,15 @@ public abstract class BTECatalog extends AbstractCatalog {
 		String metadataPrefix = (String)parts[3];
 		int offset = (Integer)parts[4];
 
-		OAIDataLoadingSpec ls = new OAIDataLoadingSpec(set, 100, offset, from, until);
-
 		try {
-			return listRecords(ls, metadataPrefix, true, false);
+			TransformationSpec ts = new TransformationSpec(100, offset, set, encodeDate(from), encodeDate(until));;
+			return listRecords(ts, metadataPrefix, true, false, true);
 		} catch (CannotDisseminateFormatException e) {
 			e.printStackTrace();
 			log.info("SHOULD NOT BE HERE!");
+		}
+		catch (ParseException e) {
+			throw new OAIInternalServerError(e.getMessage());
 		}
 		return null;
 	}
@@ -228,61 +255,96 @@ public abstract class BTECatalog extends AbstractCatalog {
 	 */
 	public abstract Map<String, String> listAllSets() throws NoSetHierarchyException, OAIInternalServerError;
 
-	private Map listRecords(OAIDataLoadingSpec dataLoadingSpec, String metadataPrefix, boolean resumption, boolean onlyHeader) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{
+	private Map listRecords(TransformationSpec transSpec, String metadataPrefix, boolean resumption, boolean onlyHeader, boolean shouldHaveResumptionToken) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{
 		//Instantiate a new BTE
-		//if (context==null){
+		if (context==null){
 			try {
 				context = new ClassPathXmlApplicationContext("app-context.xml");
 			} catch (BeansException e) {
 				throw new OAIInternalServerError(e.getMessage());
 			}
-		//}
+		}
 
-		Object teObject = context.getBean("transformationEngine");
-		if (teObject==null || !(teObject instanceof TransformationEngine))
-			throw new OAIInternalServerError("Could not find the transformation engine!");
-		TransformationEngine te = (TransformationEngine)teObject;
+		TransformationEngine te = new TransformationEngine(null, null, null);
 
 		OutputGenerator outputGenerator = resolveOutpuGenerator(metadataPrefix, resumption, onlyHeader);
-		List<Filter> filters = resolveFilters(dataLoadingSpec.getSet());
+		List<AbstractFilter> filters = resolveFilters(transSpec.getDataSetName());
+		DataLoader dataloader = resolveDataLoader();
+		Workflow workflow = resolveWorkflow();
 
-		te.getDataLoader().setLoadingSpec(dataLoadingSpec);
+		te.setDataLoader(dataloader);
 		te.setOutputGenerator(outputGenerator);
 
 		if (filters!=null){
-			for (Filter filter : filters){
-				te.getWorkflow().addStep(filter);
+			for (AbstractFilter filter : filters){
+				workflow.addStep(filter);
 			}
 		}
-		
+		te.setWorkflow(workflow);
+
 		try {
-			List<String> results =  te.transform();
+			System.out.println("EDW1");
+			TransformationResult result =  te.transform(transSpec);
 
 			Map<String, Object> returnMap = new HashMap<String, Object>();
 			if (onlyHeader)
-				returnMap.put("headers", results.iterator());
+				returnMap.put("headers", result.getOutput().iterator());
 			else
-				returnMap.put("records", results.iterator());
+				returnMap.put("records", result.getOutput().iterator());
 			HashMap<String, String> resumptionTokenMap = new HashMap<String, String>();
-			resumptionTokenMap.put("resumptionToken", dataLoadingSpec.getFrom()+"/"+dataLoadingSpec.getUntil()+"/"+(dataLoadingSpec.getSet()!=null?dataLoadingSpec.getSet():"")+"/"+metadataPrefix+"/"+(dataLoadingSpec.getOffset()+dataLoadingSpec.getMax()));
-
-			returnMap.put("resumptionMap", resumptionTokenMap);
-			log.info("Transformation Engine ended");
+			if (!result.getLastLog().getEndOfInput() && shouldHaveResumptionToken){
+				try {
+					resumptionTokenMap.put("resumptionToken", decodeDate(transSpec.getFromDate(), null)+"/"+decodeDate(transSpec.getUntilDate(), null)+"/"+(transSpec.getDataSetName()!=null?transSpec.getDataSetName():"")+"/"+metadataPrefix+"/"+(result.getLastLog().getFirstUnexaminedRecord()));
+					returnMap.put("resumptionMap", resumptionTokenMap);
+				} catch (ParseException e) {
+					throw new OAIInternalServerError(e.getMessage());
+				}
+			}
 
 			return returnMap;
 
-		} catch (UnknownClassifierException e) {
-			throw new OAIInternalServerError(e.getMessage());
-		} catch (UnknownInputFileType e) {
-			throw new OAIInternalServerError(e.getMessage());
-		} catch (UnimplementedAbstractMethod e) {
-			throw new OAIInternalServerError(e.getMessage());
-		} catch (UnsupportedComparatorMode e) {
-			throw new OAIInternalServerError(e.getMessage());
-		} catch (UnsupportedCriterion e) {
+		} catch (BadTransformationSpec e) {	
+
 			throw new OAIInternalServerError(e.getMessage());
 		}
 	}
+
+	private static Date encodeDate(String t) throws ParseException
+	{
+		SimpleDateFormat df;
+
+		// Choose the correct date format based on string length
+		if (t.length() == 10)
+		{
+			df = new SimpleDateFormat("yyyy-MM-dd");
+		}
+		else if (t.length() == 20)
+		{
+			df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+		}
+		else {
+			// Not self generated, and not in a guessable format
+			throw new ParseException("", 0);
+		}
+
+		// Parse the date
+		df.setCalendar(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+		return df.parse(t);
+	} 
+
+	private static String decodeDate(Date t, String format) throws ParseException
+	{
+		SimpleDateFormat df = null;
+
+		// Choose the correct date format based on string length
+		if (format==null){
+			df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+		}
+
+		// Parse the date
+		df.setCalendar(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+		return df.format(t);
+	} 
 
 	private Object[] decodeResumptionToken(String token)
 			throws BadResumptionTokenException
@@ -339,6 +401,36 @@ public abstract class BTECatalog extends AbstractCatalog {
 		return obj;
 			}
 
+	private DataLoader resolveDataLoader() throws OAIInternalServerError{
+		Map<String, DataLoader> dataloaders = context.getBeansOfType(DataLoader.class);
+		if (dataloaders==null || dataloaders.size()==0){
+			throw new OAIInternalServerError("No dataloader can be found on the configuration!");
+		}
+
+		if (dataloaders.size()>1){
+			throw new OAIInternalServerError("More than one dataloaders found on the configuration! Cannot decide which one to use!");
+		}
+
+		DataLoader dataloader = dataloaders.values().iterator().next();
+
+		return dataloader;
+	}
+
+	private Workflow resolveWorkflow() throws OAIInternalServerError{
+		Map<String, Workflow> workflows = context.getBeansOfType(Workflow.class);
+		if (workflows==null || workflows.size()==0){
+			return new LinearWorkflow();
+		}
+
+		if (workflows.size()>1){
+			throw new OAIInternalServerError("More than one workflows found on the configuration! Cannot decide which one to use!");
+		}
+
+		Workflow workflow = workflows.values().iterator().next();
+
+		return workflow;
+	}
+
 	private OutputGenerator resolveOutpuGenerator(String metadataPrefix, boolean resumption, boolean onlyHeader) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{
 
 		/*try {
@@ -375,11 +467,11 @@ public abstract class BTECatalog extends AbstractCatalog {
 		return userOutputGenerator;
 	}
 
-	private List<Filter> resolveFilters(String set){
-		
+	private List<AbstractFilter> resolveFilters(String set){
+
 		if (set==null)
 			return null;
-		
+
 		//Return here all virtual sets
 		if (context==null){
 			try {
@@ -389,27 +481,16 @@ public abstract class BTECatalog extends AbstractCatalog {
 			}
 		}
 		List<HashMap<String, Object>> virtualSets = (List<HashMap<String, Object>>)context.getBean("virtual-sets");
-		
+
 		for (HashMap<String, Object> map: virtualSets){
 			String setSpec = (String) map.get("setSpec");
 			if (setSpec.equals(set)){
-				List<Filter> filters = (ArrayList<Filter>)map.get("filters");
+				List<AbstractFilter> filters = (ArrayList<AbstractFilter>)map.get("filters");
 				return filters;
 			}
 		}
-		
+
 		return null;
-		
+
 	}
-
-	/*public OutputGenerator getUserOutputGenerator() {
-		return userOutputGenerator;
-	}
-
-	public void setUserOutputGenerator(OutputGenerator userOutputGenerator) {
-		this.userOutputGenerator = userOutputGenerator;
-	}*/
-
-
-
 }

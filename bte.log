@@ -1,0 +1,27 @@
+2013-03-11 10:57:30,895 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading from classloader: file:/E:/EKT/Code/Projects/OAI/oaicat-bte/trunk/target/classes/dspace.cfg
+2013-03-11 10:57:30,902 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Using dspace provided log configuration (log.init.config)
+2013-03-11 10:57:30,903 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading: /usr/local/dspace/eadd_1.8.0/config/log4j.properties
+2013-03-11 11:06:11,321 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading from classloader: file:/E:/EKT/Code/Projects/OAI/oaicat-bte/trunk/target/classes/dspace.cfg
+2013-03-11 11:06:11,328 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Using dspace provided log configuration (log.init.config)
+2013-03-11 11:06:11,328 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading: /usr/local/dspace/eadd_1.8.0/config/log4j.properties
+2013-03-11 11:11:12,011 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading from classloader: file:/E:/EKT/Code/Projects/OAI/oaicat-bte/trunk/target/classes/dspace.cfg
+2013-03-11 11:11:12,016 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Using dspace provided log configuration (log.init.config)
+2013-03-11 11:11:12,017 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading: /usr/local/dspace/eadd_1.8.0/config/log4j.properties
+2013-03-11 11:30:06,710 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading from classloader: file:/E:/EKT/Code/Projects/OAI/oaicat-bte/trunk/target/classes/dspace.cfg
+2013-03-11 11:30:06,715 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Using dspace provided log configuration (log.init.config)
+2013-03-11 11:30:06,716 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading: /usr/local/dspace/eadd_1.8.0/config/log4j.properties
+2013-03-11 11:31:10,956 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading from classloader: file:/E:/EKT/Code/Projects/OAI/oaicat-bte/trunk/target/classes/dspace.cfg
+2013-03-11 11:31:10,961 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Using dspace provided log configuration (log.init.config)
+2013-03-11 11:31:10,961 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading: /usr/local/dspace/eadd_1.8.0/config/log4j.properties
+2013-03-11 11:41:47,888 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading from classloader: file:/E:/EKT/Code/Projects/OAI/oaicat-bte/trunk/target/classes/dspace.cfg
+2013-03-11 11:41:47,895 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Using dspace provided log configuration (log.init.config)
+2013-03-11 11:41:47,896 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading: /usr/local/dspace/eadd_1.8.0/config/log4j.properties
+2013-03-11 11:49:00,586 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading from classloader: file:/E:/EKT/Code/Projects/OAI/oaicat-bte/trunk/target/classes/dspace.cfg
+2013-03-11 11:49:00,592 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Using dspace provided log configuration (log.init.config)
+2013-03-11 11:49:00,592 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading: /usr/local/dspace/eadd_1.8.0/config/log4j.properties
+2013-03-11 11:50:51,384 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading from classloader: file:/E:/EKT/Code/Projects/OAI/oaicat-bte/trunk/target/classes/dspace.cfg
+2013-03-11 11:50:51,389 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Using dspace provided log configuration (log.init.config)
+2013-03-11 11:50:51,390 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading: /usr/local/dspace/eadd_1.8.0/config/log4j.properties
+2013-03-11 12:52:37,012 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading from classloader: file:/E:/EKT/Code/Projects/OAI/oaicat-bte/trunk/target/classes/dspace.cfg
+2013-03-11 12:52:37,019 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Using dspace provided log configuration (log.init.config)
+2013-03-11 12:52:37,020 [main] INFO  org.dspace.core.ConfigurationManager.info(ConfigurationManager.java:1224) - Loading: /usr/local/dspace/eadd_1.8.0/config/log4j.properties

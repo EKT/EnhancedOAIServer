@@ -5,7 +5,7 @@
  *
  * http://www.dspace.org/license/
  */
-package gr.ekt.oaicatbte.dspace.dataloader;
+package gr.ekt.oaicatbte.dspace;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
