@@ -2,14 +2,22 @@ package gr.ekt.oaicatbte;
 
 import gr.ekt.bte.core.AbstractFilter;
 import gr.ekt.bte.core.DataLoader;
+import gr.ekt.bte.core.DataLoadingSpec;
 import gr.ekt.bte.core.LinearWorkflow;
 import gr.ekt.bte.core.OutputGenerator;
+import gr.ekt.bte.core.Record;
+import gr.ekt.bte.core.RecordSet;
+import gr.ekt.bte.core.SimpleDataLoadingSpec;
 import gr.ekt.bte.core.TransformationEngine;
 import gr.ekt.bte.core.TransformationResult;
 import gr.ekt.bte.core.TransformationSpec;
+import gr.ekt.bte.core.Value;
 import gr.ekt.bte.core.Workflow;
 import gr.ekt.bte.exceptions.BadTransformationSpec;
+import gr.ekt.bte.exceptions.EmptySourceException;
+import gr.ekt.oaicatbte.dspace.Harvest;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -23,6 +31,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
@@ -37,6 +46,7 @@ import ORG.oclc.oai.server.verb.BadResumptionTokenException;
 import ORG.oclc.oai.server.verb.CannotDisseminateFormatException;
 import ORG.oclc.oai.server.verb.IdDoesNotExistException;
 import ORG.oclc.oai.server.verb.NoItemsMatchException;
+import ORG.oclc.oai.server.verb.NoMetadataFormatsException;
 import ORG.oclc.oai.server.verb.NoSetHierarchyException;
 import ORG.oclc.oai.server.verb.OAIInternalServerError;
 
@@ -47,6 +57,65 @@ public abstract class BTECatalog extends AbstractCatalog {
 
 	private ClassPathXmlApplicationContext context = null;
 
+	@Override
+	public Vector getSchemaLocations(String identifier)
+			throws IdDoesNotExistException, NoMetadataFormatsException,
+			OAIInternalServerError {
+
+		DataLoader dataloader = resolveDataLoader();
+		SimpleDataLoadingSpec dls = new SimpleDataLoadingSpec();
+		dls.setIdentifier(identifier);
+		dls.setNumberOfRecords(1);
+		
+		try {
+			RecordSet recordSet = dataloader.getRecords(dls);
+
+			if (recordSet==null || recordSet.getRecords().size()==0){
+				throw new IdDoesNotExistException(identifier);
+			}
+
+			Record record = recordSet.getRecords().get(0);
+
+			//isDeleted
+			List<Value> isDels = record.getValues("isDeleted");
+			boolean isDeleted = false;
+			if (isDels==null || isDels.size()==0){
+				try {
+					throw new OAIInternalServerError("Your implementation of BTE Record must return a Value (true or false string values) for \"isDeleted\" field name!");
+				} catch (OAIInternalServerError e) {
+					e.printStackTrace();
+					return null;
+				}
+			}
+			String isDel = isDels.get(0).getAsString();
+			isDeleted = new Boolean(isDel);
+
+			if (isDeleted)
+			{
+				throw new NoMetadataFormatsException();
+			}
+			else
+			{
+				Vector v = new Vector();
+				Iterator iterator = getCrosswalks().iterator();
+
+				while (iterator.hasNext()) {
+					Map.Entry entry = (Map.Entry)iterator.next();
+					CrosswalkItem crosswalkItem = (CrosswalkItem)entry.getValue();
+					Crosswalk crosswalk = crosswalkItem.getCrosswalk();
+					if (crosswalk.isAvailableFor(record)) {
+						v.add(crosswalk.getSchemaLocation());
+					}
+				}
+				
+				return v;
+			}
+
+		} catch (EmptySourceException e) {
+			throw new OAIInternalServerError(e.getMessage());
+		}
+	}
+	
 	@Override
 	public String getRecord(String identifier, String metadataPrefix)
 			throws IdDoesNotExistException, CannotDisseminateFormatException,
@@ -233,10 +302,6 @@ public abstract class BTECatalog extends AbstractCatalog {
 		Map results = new HashMap();
 		results.put("sets", resultSets.iterator());
 
-		for (String s : resultSets){
-			System.out.println(s);
-		}
-
 		return results;
 	}
 
@@ -283,7 +348,6 @@ public abstract class BTECatalog extends AbstractCatalog {
 		te.setWorkflow(workflow);
 
 		try {
-			System.out.println("EDW1");
 			TransformationResult result =  te.transform(transSpec);
 
 			Map<String, Object> returnMap = new HashMap<String, Object>();

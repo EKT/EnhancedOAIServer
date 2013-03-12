@@ -54,10 +54,8 @@ public class OAIOutputGenerator implements OutputGenerator {
 		ArrayList<String> tmp = new ArrayList<String>();
 
 		for (Record record : recs.getRecords()){
-			StringBuffer xmlRec = new StringBuffer();
-			if (!onlyHeader)
-				xmlRec.append("<record>");
-			
+
+			//Identifier
 			List<Value> identifiers = record.getValues("identifier");
 			if (identifiers==null || identifiers.size()==0){
 				try {
@@ -68,25 +66,94 @@ public class OAIOutputGenerator implements OutputGenerator {
 				}
 			}
 			String identifier = identifiers.get(0).getAsString();
-			
-			xmlRec.append("<header>");
+
+			//isDeleted
+			List<Value> isDels = record.getValues("isDeleted");
+			boolean isDeleted = false;
+			if (isDels==null || isDels.size()==0){
+				try {
+					throw new OAIInternalServerError("Your implementation of BTE Record must return a Value (true or false string values) for \"isDeleted\" field name!");
+				} catch (OAIInternalServerError e) {
+					e.printStackTrace();
+					return null;
+				}
+			}
+			String isDel = isDels.get(0).getAsString();
+			isDeleted = new Boolean(isDel);
+
+			//Datestamp
+			List<Value> datestamps = record.getValues("datestamp");
+			if (datestamps==null || datestamps.size()==0){
+				try {
+					throw new OAIInternalServerError("Your implementation of BTE Record must return a Value for \"datestamp\" field name!");
+				} catch (OAIInternalServerError e) {
+					e.printStackTrace();
+					return null;
+				}
+			}
+			String datestamp = datestamps.get(0).getAsString();
+
+			//Sets
+			List<Value> sets = record.getValues("setSpecs");
+			if (sets==null || sets.size()==0){
+				try {
+					throw new OAIInternalServerError("Your implementation of BTE Record must return a Value for \"setSpecs\" field name!");
+				} catch (OAIInternalServerError e) {
+					e.printStackTrace();
+					return null;
+				}
+			}
+
+			//Abouts
+			List<Value> abouts = record.getValues("abouts");
+
+			//Create output
+			StringBuffer xmlRec = new StringBuffer();
+			if (!onlyHeader)
+				xmlRec.append("<record>");
+			xmlRec.append("<header");
+
+			if (isDeleted){
+				xmlRec.append(" status=\"deleted\"");
+			}
+
+			xmlRec.append(">");
 			xmlRec.append("<identifier>");
 			xmlRec.append("oai:"+identifier);
 			xmlRec.append("</identifier>");
 			xmlRec.append("<datestamp>");
-			xmlRec.append((new Date()).toString());
+			xmlRec.append(datestamp);
 			xmlRec.append("</datestamp>");
+
+			for (Value value : sets){
+				xmlRec.append("<setSpec>");
+				xmlRec.append(value.getAsString());
+				xmlRec.append("</setSpec>");
+			}
+
 			xmlRec.append("</header>");
+
 			if (!onlyHeader){
 				xmlRec.append("<metadata>");
 				xmlRec.append(this.createMetadata(record));
 				xmlRec.append("</metadata>");
+
+				if (abouts!=null && abouts.size()>0){
+					Value value = abouts.get(0);
+					xmlRec.append("<about>");
+					xmlRec.append(value.getAsString());
+					xmlRec.append("</about>");
+
+				}
+			}
+
+			if (!onlyHeader){
 				xmlRec.append("</record>");
 			}
 
 			tmp.add(xmlRec.toString());
 		}
-		
+
 		return tmp;
 	}
 

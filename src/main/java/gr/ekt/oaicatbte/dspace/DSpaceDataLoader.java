@@ -10,12 +10,14 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.content.DCDate;
+import org.dspace.content.DCValue;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.core.ConfigurationManager;
-import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.handle.HandleManager;
+import org.dspace.identifier.Identifier;
 import org.dspace.search.HarvestedItemInfo;
 
 import gr.ekt.bte.core.DataLoader;
@@ -48,29 +50,38 @@ public class DSpaceDataLoader implements DataLoader {
 			throws EmptySourceException {
 		RecordSet recordSet = new RecordSet();
 
-		System.out.println("TEST");
-		
 		try
 		{
 			if (context==null)
 				context = new Context();
 
 			if (spec.getIdentifier()!=null){ //Load just one record
-				DSpaceObject dso = HandleManager.resolveToObject(context, spec.getIdentifier().replace("oai:", ""));
-				if (dso.getType() == Constants.ITEM){
-					HarvestedItemInfo itemInfo = new HarvestedItemInfo();
-					itemInfo.item = (Item)dso;
-					
-					DSpaceRecord record = new DSpaceRecord((HarvestedItemInfo)itemInfo);
-					recordSet.addRecord(record);
-					
-					return recordSet;
+				HarvestedItemInfo hii = Harvest.getSingle(context, spec.getIdentifier().replace("oai:", ""), false);
+
+				Item item = hii.item;
+
+				// Get all the metadata
+				DCValue[] allDC = item.getMetadata(Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+				DSpaceRecord record = new DSpaceRecord(allDC, item.getHandle());
+
+				record.setDeleted(hii.withdrawn);
+
+				List<String> setSpecs = getSetSpecs(item);
+				record.setSets(setSpecs);
+
+				record.setDatestamp(new DCDate(hii.datestamp).toString());
+
+				recordSet.addRecord(record);
+
+				try {
+					context.complete();
+					context = null;
+				} catch (SQLException e) {
+					e.printStackTrace();
 				}
-				else {
-					
-				}
+				return recordSet;
 			}
-				
+
 			ArrayList<DSpaceObject> scopes = resolveSets(context, spec.getDataSetName());
 
 			boolean includeAll = ConfigurationManager.getBooleanProperty("harvest.includerestricted.oai", true);
@@ -78,22 +89,42 @@ public class DSpaceDataLoader implements DataLoader {
 			List itemInfos2 = Harvest.harvest(context, scopes, null, null, spec.getOffset(), spec.getNumberOfRecords(), true, true, true, includeAll); // Need items, containers + withdrawals*/
 
 			for (Object itemInfo : itemInfos2){
-				DSpaceRecord record = new DSpaceRecord((HarvestedItemInfo)itemInfo);
+				Item item = ((HarvestedItemInfo)itemInfo).item;
+				DCValue[] allDC = item.getMetadata(Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+				DSpaceRecord record = new DSpaceRecord(allDC, item.getHandle());
+
+				HarvestedItemInfo hii = new HarvestedItemInfo();
+				hii.item = item;
+				record.setDeleted(hii.withdrawn);
+
+				List<String> setSpecs = getSetSpecs(item);
+				record.setSets(setSpecs);
+
+				record.setDatestamp(new DCDate(hii.datestamp).toString());
+
 				recordSet.addRecord(record);
 			}
-
-			log.info("OAI: items: " + itemInfos2.size());
-
-		}catch (Exception e){
-			e.printStackTrace();
-		}
-		/*finally {
+			
 			try {
-				context.complete();
+				if (context!=null) {
+					context.complete();
+					context = null;
+				}
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-		}*/
+
+		}catch (Exception e){
+			e.printStackTrace();
+			try {
+				if (context!=null){
+					context.complete();
+					context = null;
+				}
+			} catch (SQLException e2) {
+				e2.printStackTrace();
+			}
+		}
 
 		return recordSet;
 	}
@@ -135,6 +166,28 @@ public class DSpaceDataLoader implements DataLoader {
 		}
 		//}
 		return result;
+	}
+
+	private List<String> getSetSpecs(Item item){
+		List<String> setSpecs = new ArrayList<String>();
+
+		try {
+			Collection[] collections = item.getCollections();
+
+			// Convert the DB Handle string 123.456/789 to the OAI-friendly
+			// hdl_123.456/789
+			for (int i=0; i<collections.length; i++){
+				Collection collection = collections[i];
+				String handle = "hdl_" + collection.getHandle();
+				setSpecs.add(handle.replace('/', '_'));
+			}
+			return setSpecs;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return setSpecs;
 	}
 
 }

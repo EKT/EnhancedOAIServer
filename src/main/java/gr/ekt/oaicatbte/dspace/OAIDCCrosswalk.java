@@ -47,10 +47,9 @@ public class OAIDCCrosswalk extends Crosswalk
             throws CannotDisseminateFormatException
     {
     	DSpaceRecord record = (DSpaceRecord)nativeItem;
-        Item item = record.getDspaceHarvestedItemInfo().item;
 
         // Get all the DC
-        DCValue[] allDC = item.getDC(Item.ANY, Item.ANY, Item.ANY);
+        DCValue[] allDC = record.getDspaceValues();
 
         StringBuffer metadata = new StringBuffer();
 

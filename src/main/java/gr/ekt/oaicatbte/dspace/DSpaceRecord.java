@@ -7,6 +7,7 @@ import gr.ekt.bte.core.Value;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.dspace.content.DCValue;
 import org.dspace.search.HarvestedItemInfo;
 
 
@@ -18,12 +19,18 @@ import org.dspace.search.HarvestedItemInfo;
  */
 public class DSpaceRecord implements Record {
 
-	private HarvestedItemInfo dspaceHarvestedItemInfo;
-	
+	private DCValue[] dspaceValues;
+	private String handle;
+	private boolean isDeleted = false;
+	private List<String> sets;
+	private String datestamp;
+
 	/**
 	 * 
 	 */
-	public DSpaceRecord() {
+	public DSpaceRecord(DCValue[] values, String handle) {
+		this.dspaceValues = values;
+		this.handle = handle;
 	}
 
 	public List<Value> getValues(String field) {
@@ -31,7 +38,40 @@ public class DSpaceRecord implements Record {
 			ArrayList<Value> result = new ArrayList<Value>();
 			Value value = new Value() {
 				public String getAsString() {
-					return dspaceHarvestedItemInfo.item.getHandle();
+					return handle;
+				}
+			};
+			result.add(value);
+			return result;
+		}
+		else if (field.equals("isDeleted")){
+			ArrayList<Value> result = new ArrayList<Value>();
+			Value value = new Value() {
+				public String getAsString() {
+					return (new Boolean(isDeleted)).toString();
+				}
+			};
+			result.add(value);
+			return result;
+		}
+		else if (field.equals("setSpecs")){
+			ArrayList<Value> result = new ArrayList<Value>();
+			for (String set : sets){
+				final String s = set;
+				Value value = new Value() {
+					public String getAsString() {
+						return s;
+					}
+				};
+				result.add(value);
+			}
+			return result;
+		}
+		else if (field.equals("datestamp")){
+			ArrayList<Value> result = new ArrayList<Value>();
+			Value value = new Value() {
+				public String getAsString() {
+					return datestamp;
 				}
 			};
 			result.add(value);
@@ -48,17 +88,43 @@ public class DSpaceRecord implements Record {
 		return false;
 	}
 
-	
-	public DSpaceRecord(HarvestedItemInfo dspaceHarvestedItemInfo) {
-		super();
-		this.dspaceHarvestedItemInfo = dspaceHarvestedItemInfo;
+	public DCValue[] getDspaceValues() {
+		return dspaceValues;
 	}
 
-	public HarvestedItemInfo getDspaceHarvestedItemInfo() {
-		return dspaceHarvestedItemInfo;
+	public void setDspaceValues(DCValue[] dspaceValues) {
+		this.dspaceValues = dspaceValues;
 	}
 
-	public void setDspaceHarvestedItemInfo(HarvestedItemInfo dspaceHarvestedItemInfo) {
-		this.dspaceHarvestedItemInfo = dspaceHarvestedItemInfo;
+	public String getHandle() {
+		return handle;
+	}
+
+	public void setHandle(String handle) {
+		this.handle = handle;
+	}
+
+	public boolean isDeleted() {
+		return isDeleted;
+	}
+
+	public void setDeleted(boolean isDeleted) {
+		this.isDeleted = isDeleted;
+	}
+
+	public List<String> getSets() {
+		return sets;
+	}
+
+	public void setSets(List<String> sets) {
+		this.sets = sets;
+	}
+
+	public String getDatestamp() {
+		return datestamp;
+	}
+
+	public void setDatestamp(String datestamp) {
+		this.datestamp = datestamp;
 	}
 }
