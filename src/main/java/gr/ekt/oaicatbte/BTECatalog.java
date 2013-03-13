@@ -52,6 +52,8 @@ import ORG.oclc.oai.server.verb.OAIInternalServerError;
 
 public abstract class BTECatalog extends AbstractCatalog {
 
+	final int MAX = 100;
+	
 	// Define a static logger variable
 	static Logger log = Logger.getLogger(BTECatalog.class);
 
@@ -148,7 +150,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 		int offset = (Integer)parts[4];
 
 		try {
-			TransformationSpec ts = new TransformationSpec(100, offset, set, encodeDate(from), encodeDate(until));
+			TransformationSpec ts = new TransformationSpec(MAX, offset, set, encodeDate(from), encodeDate(until));
 			return listRecords(ts, metadataPrefix, true, true, true);
 		} catch (CannotDisseminateFormatException e) {
 			e.printStackTrace();
@@ -167,7 +169,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 			NoSetHierarchyException, OAIInternalServerError {
 
 		try {
-			TransformationSpec ts = new TransformationSpec(100, 0, set, encodeDate(from), encodeDate(until));
+			TransformationSpec ts = new TransformationSpec(MAX, 0, set, encodeDate(from), encodeDate(until));
 			return listRecords(ts, metadataPrefix, false, true, true);
 		} catch (BadResumptionTokenException e) {
 			e.printStackTrace();
@@ -213,7 +215,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 			NoSetHierarchyException, OAIInternalServerError {
 
 		try {
-			TransformationSpec ts = new TransformationSpec(100, 0, set, encodeDate(from), encodeDate(until));
+			TransformationSpec ts = new TransformationSpec(MAX, 0, set, encodeDate(from), encodeDate(until));
 			return listRecords(ts, metadataPrefix, false, false, true);
 		} catch (BadResumptionTokenException e) {
 			e.printStackTrace();
@@ -237,7 +239,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 		int offset = (Integer)parts[4];
 
 		try {
-			TransformationSpec ts = new TransformationSpec(100, offset, set, encodeDate(from), encodeDate(until));;
+			TransformationSpec ts = new TransformationSpec(MAX, offset, set, encodeDate(from), encodeDate(until));;
 			return listRecords(ts, metadataPrefix, true, false, true);
 		} catch (CannotDisseminateFormatException e) {
 			e.printStackTrace();

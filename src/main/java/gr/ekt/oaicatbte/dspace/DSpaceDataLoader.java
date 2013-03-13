@@ -4,8 +4,13 @@
 package gr.ekt.oaicatbte.dspace;
 
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.log4j.Logger;
 import org.dspace.content.Collection;
@@ -17,7 +22,6 @@ import org.dspace.content.Item;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.handle.HandleManager;
-import org.dspace.identifier.Identifier;
 import org.dspace.search.HarvestedItemInfo;
 
 import gr.ekt.bte.core.DataLoader;
@@ -86,14 +90,14 @@ public class DSpaceDataLoader implements DataLoader {
 
 			boolean includeAll = ConfigurationManager.getBooleanProperty("harvest.includerestricted.oai", true);
 
-			List itemInfos2 = Harvest.harvest(context, scopes, null, null, spec.getOffset(), spec.getNumberOfRecords(), true, true, true, includeAll); // Need items, containers + withdrawals*/
+			List itemInfos2 = Harvest.harvest(context, scopes, decodeDate(spec.getFromDate(), null), decodeDate(spec.getUntilDate(), null), spec.getOffset(), spec.getNumberOfRecords(), true, true, true, includeAll); // Need items, containers + withdrawals*/
 
 			for (Object itemInfo : itemInfos2){
 				Item item = ((HarvestedItemInfo)itemInfo).item;
 				DCValue[] allDC = item.getMetadata(Item.ANY, Item.ANY, Item.ANY, Item.ANY);
 				DSpaceRecord record = new DSpaceRecord(allDC, item.getHandle());
 
-				HarvestedItemInfo hii = new HarvestedItemInfo();
+				HarvestedItemInfo hii = (HarvestedItemInfo)itemInfo;
 				hii.item = item;
 				record.setDeleted(hii.withdrawn);
 
@@ -190,4 +194,17 @@ public class DSpaceDataLoader implements DataLoader {
 		return setSpecs;
 	}
 
+	private static String decodeDate(Date t, String format) throws ParseException
+	{
+		SimpleDateFormat df = null;
+
+		// Choose the correct date format based on string length
+		if (format==null){
+			df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+		}
+
+		// Parse the date
+		df.setCalendar(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+		return df.format(t);
+	} 
 }

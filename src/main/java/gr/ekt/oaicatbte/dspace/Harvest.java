@@ -50,7 +50,7 @@ public class Harvest
 			boolean items, boolean collections, boolean withdrawn,
 			boolean nonAnon) throws SQLException, ParseException
 			{
-
+		
 		ArrayList<DSpaceObject> collectionScopes = new ArrayList<DSpaceObject>();
 		ArrayList<DSpaceObject> communityScopes = new ArrayList<DSpaceObject>();
 		boolean hasCollection = false;

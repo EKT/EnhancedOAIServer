@@ -22,101 +22,84 @@ public class OAIDCCrosswalk extends Crosswalk
 	// Pattern containing all the characters we want to filter out / replace
 	// converting a String to xml
 	private static final Pattern invalidXmlPattern =
-		Pattern.compile("([^\\t\\n\\r\\u0020-\\ud7ff\\ue000-\\ufffd\\u10000-\\u10ffff]+|[&<>])");
-    
-    // Pattern to test for only true dc elements.
-    private static final Pattern dcElementPattern = Pattern
-            .compile("(^(title|creator|subject|description|"
-                    + "publisher|contributor|date|type|"
-                    + "format|identifier|source|language|"
-                    + "relation|coverage|rights)$)");
-	
-    public OAIDCCrosswalk(Properties properties)
-    {
-        super("http://www.openarchives.org/OAI/2.0/oai_dc/ "
-                + "http://www.openarchives.org/OAI/2.0/oai_dc.xsd");
-    }
+			Pattern.compile("([^\\t\\n\\r\\u0020-\\ud7ff\\ue000-\\ufffd\\u10000-\\u10ffff]+|[&<>])");
 
-    public boolean isAvailableFor(Object nativeItem)
-    {
-        // We have DC for everything
-        return true;
-    }
+	public OAIDCCrosswalk(Properties properties)
+	{
+		super("http://www.openarchives.org/OAI/2.0/oai_dc/ "
+				+ "http://www.openarchives.org/OAI/2.0/oai_dc.xsd");
+	}
 
-    public String createMetadata(Object nativeItem)
-            throws CannotDisseminateFormatException
-    {
-    	DSpaceRecord record = (DSpaceRecord)nativeItem;
+	public boolean isAvailableFor(Object nativeItem)
+	{
+		// We have DC for everything
+		return true;
+	}
 
-        // Get all the DC
-        DCValue[] allDC = record.getDspaceValues();
+	public String createMetadata(Object nativeItem)
+			throws CannotDisseminateFormatException
+			{
+		DSpaceRecord record = (DSpaceRecord)nativeItem;
 
-        StringBuffer metadata = new StringBuffer();
+		// Get all the DC
+		DCValue[] allDC = record.getDspaceValues();
 
-        metadata
-                .append(
-                        "<oai_dc:dc xmlns:oai_dc=\"http://www.openarchives.org/OAI/2.0/oai_dc/\" ")
-                .append("xmlns:dc=\"http://purl.org/dc/elements/1.1/\" ")
-                .append(
-                        "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ")
-                .append(
-                        "xsi:schemaLocation=\"http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd\">");
+		StringBuffer metadata = new StringBuffer();
 
-        for (int i = 0; i < allDC.length; i++)
-        {
-            String element = allDC[i].element;
-            String qualifier = allDC[i].qualifier;
+		metadata
+		.append(
+				"<oai_dc:dc xmlns:oai_dc=\"http://www.openarchives.org/OAI/2.0/oai_dc/\" ")
+				.append("xmlns:dc=\"http://purl.org/dc/elements/1.1/\" ")
+				.append(
+						"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ")
+						.append(
+								"xsi:schemaLocation=\"http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd\">");
 
-            // Do not include description.provenance
-            boolean provenance = "description".equals(element)
-                    && "provenance".equals(qualifier);
+		for (int i = 0; i < allDC.length; i++)
+		{
+			String element = allDC[i].element;
+			String language = allDC[i].language;
+			String qualifier = allDC[i].qualifier;
+			String schema = allDC[i].schema;
 
-            // Include only OAI DC (guard against outputing invalid DC)
-            if (dcElementPattern.matcher(element).matches() && !provenance)
-            {
-                // contributor.author exposed as 'creator'
-                if ("contributor".equals(element) && "author".equals(qualifier))
-                {
-                    element = "creator";
-                }
+			String value = allDC[i].value;
 
-                String value = allDC[i].value;
-                
-                // Escape XML chars <, > and &
-                // Also replace all invalid characters with ' '
-                if (value != null)
-                {
-                	StringBuffer valueBuf = new StringBuffer(value.length());
-                	Matcher xmlMatcher = invalidXmlPattern.matcher(value.trim());
-                	while (xmlMatcher.find())
-                	{
-                		String group = xmlMatcher.group();
-                		
-                		// group will either contain a character that we need to encode for xml
-                		// (ie. <, > or &), or it will be an invalid character
-                		// test the contents and replace appropriately
-                		
-                		if (group.equals("&"))
-                			xmlMatcher.appendReplacement(valueBuf, "&amp;");
-                		else if (group.equals("<"))
-                   			xmlMatcher.appendReplacement(valueBuf, "&lt;");
-                		else if (group.equals(">"))
-                   			xmlMatcher.appendReplacement(valueBuf, "&gt;");
-                		else
-                			xmlMatcher.appendReplacement(valueBuf, " ");
-                	}
-                	
-                	// add bit of the string after the final match
-                	xmlMatcher.appendTail(valueBuf);
-	
-	                metadata.append("<dc:").append(element).append(">").append(
-	                        valueBuf.toString()).append("</dc:").append(element).append(">");
-                }
-            }
-        }
+			// Escape XML chars <, > and &
+			// Also replace all invalid characters with ' '
+			if (value != null)
+			{
+				StringBuffer valueBuf = new StringBuffer(value.length());
+				Matcher xmlMatcher = invalidXmlPattern.matcher(value.trim());
+				while (xmlMatcher.find())
+				{
+					String group = xmlMatcher.group();
 
-        metadata.append("</oai_dc:dc>");
+					if (group.equals("&"))
+						xmlMatcher.appendReplacement(valueBuf, "&amp;");
+					else if (group.equals("<"))
+						xmlMatcher.appendReplacement(valueBuf, "&lt;");
+					else if (group.equals(">"))
+						xmlMatcher.appendReplacement(valueBuf, "&gt;");
+					else
+						xmlMatcher.appendReplacement(valueBuf, " ");
+				}
 
-        return metadata.toString();
-    }
+				// add bit of the string after the final match
+				xmlMatcher.appendTail(valueBuf);
+
+				metadata.append("<dc:").append(element);
+				//if (qualifier!=null){
+				//	metadata.append("_"+qualifier);
+				//}
+				if (language!=null){
+					metadata.append(" xmlns:lang=\""+language+"\"");
+				}
+				metadata.append(">").append(valueBuf.toString()).append("</dc:").append(element).append(">");
+			}
+		}
+
+		metadata.append("</oai_dc:dc>");
+
+		return metadata.toString();
+	}
 }

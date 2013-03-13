@@ -9,23 +9,100 @@
 
 	<context:component-scan base-package="gr.ekt.oaicatbte" />
 
-	<bean id="dataloader" class="gr.ekt.oaicatbte.dspace.DSpaceDataLoader"/>
+
+	<!-- ____________________________ BIBLIO TRANSFORMATION ENGINE ______________________________ -->
+
+	<bean id="dataloader" class="gr.ekt.oaicatbte.dspace.DSpaceDataLoader" scope="prototype"/>
 
 	<bean id="conjunctionTransformationWorkflow"
-		class="gr.ekt.bte.core.LinearWorkflow">
+		class="gr.ekt.bte.core.LinearWorkflow" scope="prototype">
 		<property name="process">
 			<list>
-				
+				<ref bean="fix-metadata-language-modifier"/>
+				<ref bean="fix-language-modifier"/>
+				<ref bean="field-renamer-modifier"/>
+				<ref bean="field-remover-modifier"/>
+				<ref bean="date-modifier"/>
+				<ref bean="fix-identifier-modifier"/>
 			</list>
 		</property>
 	</bean>
 		
+	<bean id="fix-metadata-language-modifier" class="gr.ekt.oaicatbte.dspace.FixMetadataLanguageModifier">
+		<constructor-arg>
+			<value>fix-metadata-language-modifier</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="fix-language-modifier" class="gr.ekt.oaicatbte.dspace.FixLanguageModifier">
+		<constructor-arg>
+			<value>fix-language-modifier</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="field-remover-modifier" class="gr.ekt.oaicatbte.dspace.FieldRemoverModifier">
+		<constructor-arg>
+			<value>field-remover-modifier</value>
+		</constructor-arg>
+		<property name="removals">
+			<list>
+				<value>dc.date.accessioned</value>
+				<value>dc.date.available</value>
+				<value>dc.date.issued</value>
+				<value>dc.description</value>
+				<value>dc.publisher</value>
+				<value>dc.description.provenance</value>
+				<value>dc.format.medium</value>
+				<value>dc.format.extent</value>
+				<value>dc.coverage.spatial</value>
+				<value>dc.coverage.temporal</value>
+				<value>dc.type</value>
+				<value>thesis.degree.grantor</value>
+				<value>thesis.degree.discipline</value>
+				<value>uketdterms.advisor</value>
+				<value>hedi.country</value>
+				<value>hedi.commiteemember</value>
+				<value>hedi.researchinstitute</value>
+				<value>hedi.blocked</value>
+				<value>hedi.fulltext</value>
+				<value>hedi.uri</value>
+				<value>dc.contributor.committeemember</value>
+				<value>dc.contributor.researchinstitute</value>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="field-renamer-modifier" class="gr.ekt.oaicatbte.dspace.FieldRenamerModifier">
+		<constructor-arg>
+			<value>field-renamer-modifier</value>
+		</constructor-arg>
+		<property name="renames">
+			<map>
+				<entry key="dc.title.alternative" value="dc.title"></entry>
+				<entry key="uketdterms.institution" value="dc.publisher.inst"></entry>
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="date-modifier" class="gr.ekt.oaicatbte.dspace.DateModifier">
+		<constructor-arg>
+			<value>date-modifier</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="fix-identifier-modifier" class="gr.ekt.oaicatbte.dspace.FixIdentifierModifier">
+		<constructor-arg>
+			<value>fix-identifier-modifier</value>
+		</constructor-arg>
+	</bean>
+	
+	
+	<!-- ____________________________ CROSSWALKS ______________________________ -->
+	
 	<bean id="crosswalks" class="java.util.HashMap">
 		<constructor-arg>
 			<map>
 				<entry key="oai_dc" value-ref="oaidc-crosswalk"/>
-				<entry key="rdf" value-ref="oaidc-crosswalk"/>
-				<entry key="ese" value-ref="oaidc-crosswalk"/>
 			</map>
 		</constructor-arg>
 	</bean>
@@ -36,34 +113,67 @@
 		</constructor-arg>
 	</bean>
 	
-	<bean id="filter1" class="gr.ekt.oaicatbte.dspace.TestFilter">
-		<constructor-arg>
-			<value>Test Filter</value>
-		</constructor-arg>
-	</bean>
+	
+	<!-- ____________________________ VIRTUAL SETS ______________________________ -->
 	
 	<bean id="virtual-sets" class="java.util.ArrayList">
 		<constructor-arg>
 			<list>
 				<map>
-					<entry key="name" value="driver" />
-					<entry key="setSpec" value="driver" />
-					<entry key="filters" value-ref="driver-filters"/>
+					<entry key="name" value="dart" />
+					<entry key="setSpec" value="dart" />
+					<entry key="filters" value-ref="dart-filters"/>
 				</map>
 				<map>
 					<entry key="name" value="voa3r" />
 					<entry key="setSpec" value="voa3r" />
-					<entry key="filters" value-ref="driver-filters" />
+					<entry key="filters" value-ref="voa3r-filters" />
 				</map>
 			</list>
 		</constructor-arg>
 	</bean> 
 	
-	<bean id="driver-filters" class="java.util.ArrayList">
+	<bean id="dart-filters" class="java.util.ArrayList">
 		<constructor-arg>
 			<list>
-				<ref bean="filter1"/>
+				<ref bean="institution-filter"/>
+				<ref bean="fulltext-filter"/>
+				<ref bean="country-filter"/>
 			</list>
 		</constructor-arg>
 	</bean>
+	
+		<bean id="institution-filter" class="gr.ekt.oaicatbte.dspace.InstitutionFilter">
+		<constructor-arg>
+			<value>institution-filter</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="fulltext-filter" class="gr.ekt.oaicatbte.dspace.FullTextFilter">
+		<constructor-arg>
+			<value>fulltext-filter</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="country-filter" class="gr.ekt.oaicatbte.dspace.CountryFilter">
+		<constructor-arg>
+			<value>country-filter</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="agricultural-discipline-filter" class="gr.ekt.oaicatbte.dspace.AgriculturalDisciplineFilter">
+		<constructor-arg>
+			<value>agricultural-discipline-filter</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="voa3r-filters" class="java.util.ArrayList">
+		<constructor-arg>
+			<list>
+				<ref bean="agricultural-discipline-filter"/>
+			</list>
+		</constructor-arg>
+	</bean>
+	
+	
 </beans>

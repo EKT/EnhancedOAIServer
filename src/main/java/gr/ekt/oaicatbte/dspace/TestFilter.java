@@ -1,7 +1,5 @@
 package gr.ekt.oaicatbte.dspace;
 
-import java.util.Map;
-
 import gr.ekt.bte.core.AbstractFilter;
 import gr.ekt.bte.core.Record;
 
@@ -9,6 +7,7 @@ public class TestFilter extends AbstractFilter {
 
 	public TestFilter(String name) {
 		super(name);
+		// TODO Auto-generated constructor stub
 	}
 
 	@Override
@@ -16,4 +15,5 @@ public class TestFilter extends AbstractFilter {
 		// TODO Auto-generated method stub
 		return false;
 	}
+
 }

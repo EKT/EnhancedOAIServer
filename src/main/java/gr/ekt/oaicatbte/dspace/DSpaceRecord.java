@@ -17,7 +17,7 @@ import org.dspace.search.HarvestedItemInfo;
  * @author Nikos Houssos (nhoussos@ekt.gr) 
  * @copyright 2011 - National Documentation Center
  */
-public class DSpaceRecord implements Record {
+public class DSpaceRecord implements MutableRecord {
 
 	private DCValue[] dspaceValues;
 	private String handle;
@@ -81,10 +81,40 @@ public class DSpaceRecord implements Record {
 	}
 
 	public MutableRecord makeMutable() {
-		return null;
+		return this;
 	}
 
 	public boolean isMutable() {
+		return true;
+	}
+
+	public boolean addField(String field, List<Value> values) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public boolean addValue(String field, Value value) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public boolean removeField(String field) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public boolean removeValue(String field, Value value) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public boolean updateField(String field, List<Value> value) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public boolean updateValue(String field, Value old_value, Value new_value) {
+		// TODO Auto-generated method stub
 		return false;
 	}
 
