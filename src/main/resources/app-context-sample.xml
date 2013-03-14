@@ -12,7 +12,7 @@
 
 	<!-- ____________________________ BIBLIO TRANSFORMATION ENGINE ______________________________ -->
 
-	<bean id="dataloader" class="gr.ekt.oaicatbte.dspace.DSpaceDataLoader" scope="prototype"/>
+	<bean id="dataloader" class="gr.ekt.oai.DSpaceDataLoader" scope="prototype"/>
 
 	<bean id="conjunctionTransformationWorkflow"
 		class="gr.ekt.bte.core.LinearWorkflow" scope="prototype">
@@ -28,19 +28,19 @@
 		</property>
 	</bean>
 		
-	<bean id="fix-metadata-language-modifier" class="gr.ekt.oaicatbte.dspace.FixMetadataLanguageModifier">
+	<bean id="fix-metadata-language-modifier" class="gr.ekt.oai.modifiers.FixMetadataLanguageModifier">
 		<constructor-arg>
 			<value>fix-metadata-language-modifier</value>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="fix-language-modifier" class="gr.ekt.oaicatbte.dspace.FixLanguageModifier">
+	<bean id="fix-language-modifier" class="gr.ekt.oai.modifiers.FixLanguageModifier">
 		<constructor-arg>
 			<value>fix-language-modifier</value>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="field-remover-modifier" class="gr.ekt.oaicatbte.dspace.FieldRemoverModifier">
+	<bean id="field-remover-modifier" class="gr.ekt.oai.modifiers.FieldRemoverModifier">
 		<constructor-arg>
 			<value>field-remover-modifier</value>
 		</constructor-arg>
@@ -57,6 +57,8 @@
 				<value>dc.coverage.spatial</value>
 				<value>dc.coverage.temporal</value>
 				<value>dc.type</value>
+				<value>dc.identifier</value>
+				<value>dc.identifier.uri</value>
 				<value>thesis.degree.grantor</value>
 				<value>thesis.degree.discipline</value>
 				<value>uketdterms.advisor</value>
@@ -72,7 +74,7 @@
 		</property>
 	</bean>
 	
-	<bean id="field-renamer-modifier" class="gr.ekt.oaicatbte.dspace.FieldRenamerModifier">
+	<bean id="field-renamer-modifier" class="gr.ekt.oai.modifiers.FieldRenamerModifier">
 		<constructor-arg>
 			<value>field-renamer-modifier</value>
 		</constructor-arg>
@@ -84,13 +86,13 @@
 		</property>
 	</bean>
 	
-	<bean id="date-modifier" class="gr.ekt.oaicatbte.dspace.DateModifier">
+	<bean id="date-modifier" class="gr.ekt.oai.modifiers.DateModifier">
 		<constructor-arg>
 			<value>date-modifier</value>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="fix-identifier-modifier" class="gr.ekt.oaicatbte.dspace.FixIdentifierModifier">
+	<bean id="fix-identifier-modifier" class="gr.ekt.oai.modifiers.FixIdentifierModifier">
 		<constructor-arg>
 			<value>fix-identifier-modifier</value>
 		</constructor-arg>
@@ -107,7 +109,7 @@
 		</constructor-arg>
 	</bean>
 	
-	<bean id="oaidc-crosswalk" class="gr.ekt.oaicatbte.dspace.OAIDCCrosswalk">
+	<bean id="oaidc-crosswalk" class="gr.ekt.oai.OAIDCCrosswalk">
 		<constructor-arg>
 			<value>http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd</value>
 		</constructor-arg>
@@ -143,25 +145,25 @@
 		</constructor-arg>
 	</bean>
 	
-		<bean id="institution-filter" class="gr.ekt.oaicatbte.dspace.InstitutionFilter">
+		<bean id="institution-filter" class="gr.ekt.oai.filters.InstitutionFilter">
 		<constructor-arg>
 			<value>institution-filter</value>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="fulltext-filter" class="gr.ekt.oaicatbte.dspace.FullTextFilter">
+	<bean id="fulltext-filter" class="gr.ekt.oai.filters.FullTextFilter">
 		<constructor-arg>
 			<value>fulltext-filter</value>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="country-filter" class="gr.ekt.oaicatbte.dspace.CountryFilter">
+	<bean id="country-filter" class="gr.ekt.oai.filters.CountryFilter">
 		<constructor-arg>
 			<value>country-filter</value>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="agricultural-discipline-filter" class="gr.ekt.oaicatbte.dspace.AgriculturalDisciplineFilter">
+	<bean id="agricultural-discipline-filter" class="gr.ekt.oai.filters.AgriculturalDisciplineFilter">
 		<constructor-arg>
 			<value>agricultural-discipline-filter</value>
 		</constructor-arg>

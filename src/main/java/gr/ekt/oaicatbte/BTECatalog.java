@@ -15,7 +15,6 @@ import gr.ekt.bte.core.Value;
 import gr.ekt.bte.core.Workflow;
 import gr.ekt.bte.exceptions.BadTransformationSpec;
 import gr.ekt.bte.exceptions.EmptySourceException;
-import gr.ekt.oaicatbte.dspace.Harvest;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;

@@ -1,7 +1,5 @@
 package gr.ekt.oaicatbte;
 
-import gr.ekt.oaicatbte.dspace.DSpaceBTEOAICatalog;
-
 import java.util.Map;
 
 
