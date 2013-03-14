@@ -343,7 +343,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 
 		if (filters!=null){
 			for (AbstractFilter filter : filters){
-				workflow.addStep(filter);
+				workflow.addStepBefore(filter);
 			}
 		}
 		te.setWorkflow(workflow);
