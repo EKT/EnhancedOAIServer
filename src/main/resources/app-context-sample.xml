@@ -105,6 +105,7 @@
 		<constructor-arg>
 			<map>
 				<entry key="oai_dc" value-ref="oaidc-crosswalk"/>
+				<entry key="raw" value-ref="raw-crosswalk"/>
 			</map>
 		</constructor-arg>
 	</bean>
@@ -112,6 +113,12 @@
 	<bean id="oaidc-crosswalk" class="gr.ekt.oai.OAIDCCrosswalk">
 		<constructor-arg>
 			<value>http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="raw-crosswalk" class="gr.ekt.oai.RawCrosswalk">
+		<constructor-arg>
+			<value>http://www.loc.gov/MARC21/slim/ http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd</value>
 		</constructor-arg>
 	</bean>
 	

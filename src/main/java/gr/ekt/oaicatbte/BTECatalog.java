@@ -16,6 +16,14 @@ import gr.ekt.bte.core.Workflow;
 import gr.ekt.bte.exceptions.BadTransformationSpec;
 import gr.ekt.bte.exceptions.EmptySourceException;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.ParseException;
@@ -32,9 +40,23 @@ import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.Vector;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import ORG.oclc.oai.server.catalog.AbstractCatalog;
 import ORG.oclc.oai.server.crosswalk.Crosswalk;
@@ -51,7 +73,7 @@ import ORG.oclc.oai.server.verb.OAIInternalServerError;
 
 public abstract class BTECatalog extends AbstractCatalog {
 
-	final int MAX = 100;
+	final int MAX = 5000;
 	
 	// Define a static logger variable
 	static Logger log = Logger.getLogger(BTECatalog.class);
@@ -203,7 +225,17 @@ public abstract class BTECatalog extends AbstractCatalog {
 			CrosswalkItem crosswalkItem = new CrosswalkItem(schemaLabel, crosswalk.getSchemaURL(), crosswalk.getNamespaceURL(), crosswalk);
 			crosswalksMap.put(schemaLabel, crosswalkItem);
 		}
-
+		
+		HashMap<String, HashMap<String, String>> resolved = resolveXSLTs();
+		if (resolved!=null){
+			for (String prefix : resolved.keySet()){
+				HashMap<String, String> schemaDefList = resolved.get(prefix);
+				Crosswalk crosswalk =  new EmptyCrosswalk(schemaDefList.get("namespace")+" "+schemaDefList.get("schema"));
+				CrosswalkItem crosswalkItem = new CrosswalkItem(prefix, crosswalk.getSchemaURL(), crosswalk.getNamespaceURL(), crosswalk);
+				crosswalksMap.put(prefix, crosswalkItem);
+			}
+		}
+		
 		return new Crosswalks(crosswalksMap);
 	}
 
@@ -349,13 +381,90 @@ public abstract class BTECatalog extends AbstractCatalog {
 		te.setWorkflow(workflow);
 
 		try {
+
 			TransformationResult result =  te.transform(transSpec);
+			List<String> tempResults = result.getOutput();
+			//TransformationResult result = new TransformationResult(null, null);
+			//List<String> tempResults = new ArrayList<String>();
 
 			Map<String, Object> returnMap = new HashMap<String, Object>();
 			if (onlyHeader)
-				returnMap.put("headers", result.getOutput().iterator());
-			else
-				returnMap.put("records", result.getOutput().iterator());
+				returnMap.put("headers", tempResults.iterator());
+			else {
+				ArrayList<String> xslts = resolveXSLTsForMetadataPrefix(metadataPrefix);
+				if (xslts == null || xslts.size()==0){
+					returnMap.put("records",tempResults.iterator());
+				}
+				else {
+					//These results need to be transformed using xslts on xslts ArrayList
+					try {
+						InputStream xsltStream = new URL(xslts.get(0)).openStream();
+						StreamSource xsltFile = new StreamSource(xsltStream);
+						log.info("Result size = " + tempResults.size());
+						ArrayList<String> finalresults = new ArrayList<String>();
+						for (String res : tempResults) {
+
+							int index = res.indexOf("><metadata>");
+							if (index!=-1){
+								String header = res.substring(0, index+11);
+								res = res.substring(index+11);
+								res = res.replace("</metadata></record>", "");
+							
+							
+							byte[] barray = res.getBytes("UTF-8");
+							InputStream is = new ByteArrayInputStream(barray);
+
+							DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+							DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+							Document doc = dBuilder.parse(is);
+
+							TransformerFactory xsltFactory = TransformerFactory.newInstance();
+							Transformer transformer = xsltFactory.newTransformer(xsltFile);
+
+							// Send transformed output to the console
+							ByteArrayOutputStream baos = new ByteArrayOutputStream();
+							StreamResult resultStream = new StreamResult(baos);
+
+							//StreamSource xml = new StreamSource(is);
+
+							// Apply the transformation
+							DOMSource source = new DOMSource(doc);
+							transformer.transform(source, resultStream);
+
+							finalresults.add(header + baos.toString() + "</metadata></record>");
+							}
+						}	
+						returnMap.put("records", finalresults.iterator());
+
+					} catch (UnsupportedEncodingException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (MalformedURLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (TransformerConfigurationException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (ParserConfigurationException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (SAXException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (TransformerFactoryConfigurationError e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (TransformerException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+
+				}
+			}
 			HashMap<String, String> resumptionTokenMap = new HashMap<String, String>();
 			if (!result.getLastLog().getEndOfInput() && shouldHaveResumptionToken){
 				try {
@@ -372,6 +481,85 @@ public abstract class BTECatalog extends AbstractCatalog {
 
 			throw new OAIInternalServerError(e.getMessage());
 		}
+	}
+
+	@Override
+	public String getDescriptions() {
+
+		if (context==null){
+			try {
+				context = new ClassPathXmlApplicationContext("app-context.xml");
+			} catch (BeansException e) {
+				e.printStackTrace();
+				return null;
+			}
+		}
+
+		StringBuffer description = new StringBuffer();
+		description.append("<description><metadataMapping xmlns=\"http://www.ekt.gr/OAI/metadata/mapping\"" +
+				" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" +
+				"  xsi:schemaLocation=\"http://www.ekt.gr/OAI/metadata/mapping http://devtom.ekt.gr:8889/matadatamapping.xsd\">");
+
+		HashMap<String, Object> metadataMaps = (HashMap<String, Object>)context.getBean("metadata-maps");
+
+		if (metadataMaps!=null) {
+			HashMap<String, String> creatorMap = (HashMap<String, String>)metadataMaps.get("creator");
+			if (creatorMap!=null){
+				description.append("<creator>");
+				if (creatorMap.containsKey("name")){
+					description.append("<name>").append(creatorMap.get("name")).append("</name>");
+				}
+				if (creatorMap.containsKey("email")){
+					description.append("<email>").append(creatorMap.get("email")).append("</email>");
+				}
+				if (creatorMap.containsKey("url")){
+					description.append("<url>").append(creatorMap.get("url")).append("</url>");
+				}
+				if (creatorMap.containsKey("info")){
+					description.append("<info>").append(creatorMap.get("info")).append("</info>");
+				}
+				description.append("</creator>");
+			}
+
+			ArrayList<HashMap<String, Object>> mappingsList = (ArrayList<HashMap<String, Object>>)metadataMaps.get("mappings");
+			for (HashMap<String, Object> mapping : mappingsList){
+				description.append("<mapping>");
+				if (mapping.containsKey("source")){
+					HashMap<String, String> source = (HashMap<String, String>)mapping.get("source");
+					description.append("<sourceMetadataFormat>");
+
+					description.append("<metadataPrefix>").append(source.get("metadataPrefix")).append("</metadataPrefix>");
+					description.append("<schema>").append(source.get("schema")).append("</schema>");
+					description.append("<metadataNamespace>").append(source.get("namespace")).append("</metadataNamespace>");
+
+					description.append("</sourceMetadataFormat>");
+				}
+
+				if (mapping.containsKey("target")){
+					HashMap<String, String> target = (HashMap<String, String>)mapping.get("target");
+					description.append("<targetMetadataFormat>");
+
+					description.append("<metadataPrefix>").append(target.get("metadataPrefix")).append("</metadataPrefix>");
+					description.append("<schema>").append(target.get("schema")).append("</schema>");
+					description.append("<metadataNamespace>").append(target.get("namespace")).append("</metadataNamespace>");
+
+					description.append("</targetMetadataFormat>");
+				}
+
+				if (mapping.containsKey("lastModified")){
+					description.append("<lastModified>").append(mapping.get("lastModified")).append("</lastModified>");
+				}
+				if (mapping.containsKey("xslt-url")){
+					description.append("<xsltURL>").append(mapping.get("xslt-url")).append("</xsltURL>");
+				}
+				description.append("</mapping>");
+			}
+
+			description.append("</metadataMapping></description>");
+
+			return description.toString();
+		}
+		return null;
 	}
 
 	private static Date encodeDate(String t) throws ParseException
@@ -498,14 +686,11 @@ public abstract class BTECatalog extends AbstractCatalog {
 
 	private OutputGenerator resolveOutpuGenerator(String metadataPrefix, boolean resumption, boolean onlyHeader) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{
 
-		/*try {
-			Map<String, OutputGenerator> outputGenerators = context.getBeansOfType(OutputGenerator.class);
-			userOutputGenerator = 
-			return userOutputGenerator;
-		} catch (BeansException e) {
-
-		}*/
-
+		ArrayList<String> xslts = resolveXSLTsForMetadataPrefix(metadataPrefix);
+		if (xslts!=null && xslts.size()>0){
+			metadataPrefix = "raw";
+		}
+		
 		OAIOutputGenerator userOutputGenerator = new OAIOutputGenerator();
 		userOutputGenerator.setOnlyHeader(onlyHeader);
 
@@ -557,5 +742,84 @@ public abstract class BTECatalog extends AbstractCatalog {
 
 		return null;
 
+	}
+	
+	public HashMap<String, HashMap<String, String>> resolveXSLTs() {
+
+		if (context==null){
+			try {
+				context = new ClassPathXmlApplicationContext("app-context.xml");
+			} catch (BeansException e) {
+				e.printStackTrace();
+				return null;
+			}
+		}
+
+		HashMap<String, HashMap<String, String>> result = new HashMap<String, HashMap<String, String>>();
+
+		HashMap<String, String> result2 = new HashMap<String, String>();
+
+		HashMap<String, Object> metadataMaps = (HashMap<String, Object>)context.getBean("metadata-maps");
+
+		if (metadataMaps!=null){
+			ArrayList<HashMap<String, Object>> mappingsList = (ArrayList<HashMap<String, Object>>)metadataMaps.get("mappings");
+			for (HashMap<String, Object> mapping : mappingsList){
+				HashMap<String, String> source = (HashMap<String, String>)mapping.get("source");
+				HashMap<String, String> target = (HashMap<String, String>)mapping.get("target");
+				String url = (String)mapping.get("xslt-url");
+
+				HashMap<String, String> schemaDef = new HashMap<String, String>();
+				schemaDef.put("schema", target.get("schema"));
+				schemaDef.put("namespace", target.get("namespace"));
+				result.put(target.get("metadataPrefix"), schemaDef);
+
+			}
+
+			return result;
+		}
+		return null;
+	}
+	
+	public ArrayList<String> resolveXSLTsForMetadataPrefix(String metadataPrefix) {
+
+		if (context==null){
+			try {
+				context = new ClassPathXmlApplicationContext("app-context.xml");
+			} catch (BeansException e) {
+				e.printStackTrace();
+				return null;
+			}
+		}
+
+		HashMap<String, String> xslt = new HashMap<String, String>();
+		HashMap<String, String> maps = new HashMap<String, String>();
+
+		HashMap<String, Object> metadataMaps = (HashMap<String, Object>)context.getBean("metadata-maps");
+
+		if (metadataMaps!=null){
+			ArrayList<HashMap<String, Object>> mappingsList = (ArrayList<HashMap<String, Object>>)metadataMaps.get("mappings");
+			for (HashMap<String, Object> mapping : mappingsList){
+				HashMap<String, String> source = (HashMap<String, String>)mapping.get("source");
+				HashMap<String, String> target = (HashMap<String, String>)mapping.get("target");
+				String url = (String)mapping.get("xslt-url");
+
+				xslt.put(source.get("metadataPrefix"), (String)mapping.get("xslt-url"));
+				maps.put(target.get("metadataPrefix"), source.get("metadataPrefix"));
+			}
+			
+			ArrayList<String> xsls = new ArrayList<String>();
+			
+			String sourcePref = maps.get(metadataPrefix);
+			if (sourcePref==null)
+				return null;
+			xsls.add(xslt.get(sourcePref));
+			while (!sourcePref.equals("raw")){
+				sourcePref = maps.get(sourcePref);
+				xsls.add(xslt.get(sourcePref));
+			}
+
+			return xsls;
+		}
+		return null;
 	}
 }

@@ -38,6 +38,7 @@ public class OAIOutputGenerator implements OutputGenerator {
 
 	private Crosswalk crosswalk = null;
 	private boolean onlyHeader = false;
+	private String schema = "";
 
 	/**
 	 * Default constructor
@@ -55,6 +56,10 @@ public class OAIOutputGenerator implements OutputGenerator {
 
 		for (Record record : recs.getRecords()){
 
+			if (!hasMetadata(record)){
+				continue;
+			}
+				
 			//Identifier
 			List<Value> identifiers = record.getValues("identifier");
 			if (identifiers==null || identifiers.size()==0){
@@ -170,6 +175,11 @@ public class OAIOutputGenerator implements OutputGenerator {
 		else {
 			return "";
 		}
+	}
+	
+	public boolean hasMetadata(Record record)
+	{
+		return crosswalk.isAvailableFor(record);
 	}
 
 	public Crosswalk getCrosswalk() {
