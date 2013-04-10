@@ -73,7 +73,7 @@ import ORG.oclc.oai.server.verb.OAIInternalServerError;
 
 public abstract class BTECatalog extends AbstractCatalog {
 
-	final int MAX = 5000;
+	final int MAX = 100;
 	
 	// Define a static logger variable
 	static Logger log = Logger.getLogger(BTECatalog.class);
@@ -391,15 +391,15 @@ public abstract class BTECatalog extends AbstractCatalog {
 			if (onlyHeader)
 				returnMap.put("headers", tempResults.iterator());
 			else {
-				ArrayList<String> xslts = resolveXSLTsForMetadataPrefix(metadataPrefix);
+				HashMap<String, ArrayList<String>> xslts = resolveXSLTsForMetadataPrefix(metadataPrefix);
 				if (xslts == null || xslts.size()==0){
 					returnMap.put("records",tempResults.iterator());
 				}
 				else {
 					//These results need to be transformed using xslts on xslts ArrayList
 					try {
-						InputStream xsltStream = new URL(xslts.get(0)).openStream();
-						StreamSource xsltFile = new StreamSource(xsltStream);
+						
+
 						log.info("Result size = " + tempResults.size());
 						ArrayList<String> finalresults = new ArrayList<String>();
 						for (String res : tempResults) {
@@ -409,29 +409,50 @@ public abstract class BTECatalog extends AbstractCatalog {
 								String header = res.substring(0, index+11);
 								res = res.substring(index+11);
 								res = res.replace("</metadata></record>", "");
-							
-							
-							byte[] barray = res.getBytes("UTF-8");
-							InputStream is = new ByteArrayInputStream(barray);
 
-							DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-							DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-							Document doc = dBuilder.parse(is);
+								//Need somehow to understand the metadata of the record
+								
+								String namespace = res.substring(res.indexOf("xsi:schemaLocation=\""));
+								namespace = namespace.replace("xsi:schemaLocation=\"", "");
+								namespace = namespace.substring(0, namespace.indexOf("\">"));
+								namespace = namespace.split("\\s")[0];
+								String prefix = resolvePrefixFromNamespace(namespace);
+								
+								ArrayList<String> allXSLTs = xslts.get(prefix);
+								if (allXSLTs==null || allXSLTs.size()==0)
+									throw new OAIInternalServerError("Mapping in Identify not correct");
+								
+								String toBeTransformed = res;
 
-							TransformerFactory xsltFactory = TransformerFactory.newInstance();
-							Transformer transformer = xsltFactory.newTransformer(xsltFile);
+								for (String xsltUrlString : allXSLTs){
+									InputStream xsltStream = new URL(xsltUrlString).openStream();
+									StreamSource xsltFile = new StreamSource(xsltStream);
 
-							// Send transformed output to the console
-							ByteArrayOutputStream baos = new ByteArrayOutputStream();
-							StreamResult resultStream = new StreamResult(baos);
 
-							//StreamSource xml = new StreamSource(is);
+									byte[] barray = toBeTransformed.getBytes("UTF-8");
+									InputStream is = new ByteArrayInputStream(barray);
 
-							// Apply the transformation
-							DOMSource source = new DOMSource(doc);
-							transformer.transform(source, resultStream);
+									DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+									DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+									Document doc = dBuilder.parse(is);
+									
+									TransformerFactory xsltFactory = TransformerFactory.newInstance();
+									Transformer transformer = xsltFactory.newTransformer(xsltFile);
 
-							finalresults.add(header + baos.toString() + "</metadata></record>");
+									// Send transformed output to the console
+									ByteArrayOutputStream baos = new ByteArrayOutputStream();
+									StreamResult resultStream = new StreamResult(baos);
+
+									//StreamSource xml = new StreamSource(is);
+
+									// Apply the transformation
+									DOMSource source = new DOMSource(doc);
+									transformer.transform(source, resultStream);
+
+									toBeTransformed = baos.toString();
+								}
+
+								finalresults.add(header + toBeTransformed + "</metadata></record>");
 							}
 						}	
 						returnMap.put("records", finalresults.iterator());
@@ -498,7 +519,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 		StringBuffer description = new StringBuffer();
 		description.append("<description><metadataMapping xmlns=\"http://www.ekt.gr/OAI/metadata/mapping\"" +
 				" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" +
-				"  xsi:schemaLocation=\"http://www.ekt.gr/OAI/metadata/mapping http://devtom.ekt.gr:8889/matadatamapping.xsd\">");
+				"  xsi:schemaLocation=\"http://www.ekt.gr/OAI/metadata/mapping http://devtom.ekt.gr:8889/metadatamapping.xsd\">");
 
 		HashMap<String, Object> metadataMaps = (HashMap<String, Object>)context.getBean("metadata-maps");
 
@@ -552,6 +573,28 @@ public abstract class BTECatalog extends AbstractCatalog {
 				if (mapping.containsKey("xslt-url")){
 					description.append("<xsltURL>").append(mapping.get("xslt-url")).append("</xsltURL>");
 				}
+				if (mapping.containsKey("additional-info")){
+					description.append("<additionalInfo>");
+						
+					HashMap<String, Object> additionalInfo = (HashMap<String, Object>)mapping.get("additional-info");
+					if (additionalInfo.containsKey("description")){
+						description.append("<description>");
+						description.append(additionalInfo.get("description"));
+						description.append("</description>");
+					}
+					
+					if (additionalInfo.containsKey("xsltArguments")){
+						description.append("<xsltArguments>");
+						HashMap<String, String> arguments = (HashMap<String, String>)additionalInfo.get("xsltArguments");
+						for (String s : arguments.keySet()){
+							description.append("<argument name=\""+s+"\" value=\""+arguments.get(s)+"\"/>");
+						}
+						description.append("</xsltArguments>");
+					}
+					
+					description.append("</additionalInfo>");
+				}
+				
 				description.append("</mapping>");
 			}
 
@@ -686,7 +729,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 
 	private OutputGenerator resolveOutpuGenerator(String metadataPrefix, boolean resumption, boolean onlyHeader) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{
 
-		ArrayList<String> xslts = resolveXSLTsForMetadataPrefix(metadataPrefix);
+		HashMap<String, ArrayList<String>> xslts = resolveXSLTsForMetadataPrefix(metadataPrefix);
 		if (xslts!=null && xslts.size()>0){
 			metadataPrefix = "raw";
 		}
@@ -780,7 +823,35 @@ public abstract class BTECatalog extends AbstractCatalog {
 		return null;
 	}
 	
-	public ArrayList<String> resolveXSLTsForMetadataPrefix(String metadataPrefix) {
+	public String resolvePrefixFromNamespace(String namespace) {
+
+		if (context==null){
+			try {
+				context = new ClassPathXmlApplicationContext("app-context.xml");
+			} catch (BeansException e) {
+				e.printStackTrace();
+				return null;
+			}
+		}
+
+		HashMap<String, Object> metadataMaps = (HashMap<String, Object>)context.getBean("metadata-maps");
+
+		if (metadataMaps!=null){
+			ArrayList<HashMap<String, Object>> mappingsList = (ArrayList<HashMap<String, Object>>)metadataMaps.get("mappings");
+			for (HashMap<String, Object> mapping : mappingsList){
+				HashMap<String, String> source = (HashMap<String, String>)mapping.get("source");
+				
+				if (source.get("namespace").equals(namespace)){
+					return source.get("metadataPrefix");
+				}
+				
+
+			}
+		}
+		return null;
+	}
+	
+	public HashMap<String, ArrayList<String>> resolveXSLTsForMetadataPrefix(String metadataPrefix) {
 
 		if (context==null){
 			try {
@@ -792,7 +863,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 		}
 
 		HashMap<String, String> xslt = new HashMap<String, String>();
-		HashMap<String, String> maps = new HashMap<String, String>();
+		HashMap<String, List<String>> maps = new HashMap<String, List<String>>();
 
 		HashMap<String, Object> metadataMaps = (HashMap<String, Object>)context.getBean("metadata-maps");
 
@@ -803,23 +874,82 @@ public abstract class BTECatalog extends AbstractCatalog {
 				HashMap<String, String> target = (HashMap<String, String>)mapping.get("target");
 				String url = (String)mapping.get("xslt-url");
 
-				xslt.put(source.get("metadataPrefix"), (String)mapping.get("xslt-url"));
-				maps.put(target.get("metadataPrefix"), source.get("metadataPrefix"));
+				xslt.put(source.get("metadataPrefix")+"_"+target.get("metadataPrefix"), (String)mapping.get("xslt-url"));
+				if (maps.containsKey(target.get("metadataPrefix"))){
+					maps.get(target.get("metadataPrefix")).add(source.get("metadataPrefix"));
+				}
+				else {
+					ArrayList<String> tmp = new ArrayList<String>();
+					tmp.add(source.get("metadataPrefix"));
+					maps.put(target.get("metadataPrefix"), tmp);	
+				}
 			}
 			
-			ArrayList<String> xsls = new ArrayList<String>();
+			HashMap<String, ArrayList<String>> finalResult = new HashMap<String, ArrayList<String>>();
 			
-			String sourcePref = maps.get(metadataPrefix);
-			if (sourcePref==null)
-				return null;
-			xsls.add(xslt.get(sourcePref));
-			while (!sourcePref.equals("raw")){
-				sourcePref = maps.get(sourcePref);
-				xsls.add(xslt.get(sourcePref));
+			String[] path = new String[1000];
+			for (Map.Entry<String, List<String>> tmp : maps.entrySet()){
+				if (tmp.getKey().equals(metadataPrefix)){
+					printPaths(tmp, path, 0, maps, xslt, null, finalResult); 
+					break;
+				}
 			}
-
-			return xsls;
+			
+			return finalResult;
 		}
 		return null;
+	}
+	
+	private void printPaths(Map.Entry<String, List<String>> node, String[] path, int pathLen, HashMap<String, List<String>> maps, HashMap<String, String> xslt, String leaf, HashMap<String, ArrayList<String>> result) { 
+
+		if (node==null) {
+			//printArray(path, pathLen, leaf);
+			
+			int i; 
+			ArrayList<String> tmp = new ArrayList<String>();
+			for (i=0; i<pathLen; i++) { 
+				tmp.add(path[i]); 
+			} 
+			tmp.add(leaf);
+			
+			ArrayList<String> tmp2 = new ArrayList<String>();
+			for (int j=tmp.size()-1; j>0; j--){
+				String from = tmp.get(j);
+				String to = tmp.get(j-1);
+				String xsl = xslt.get(from+"_"+to);
+				
+				tmp2.add(xsl);
+			}
+			
+			
+			result.put(leaf, tmp2);
+			
+			return;
+		}
+
+		path[pathLen] = node.getKey(); 
+		pathLen++;
+
+		for (String s : node.getValue()){
+			boolean found = false;
+			for (Map.Entry<String, List<String>> tmp : maps.entrySet()){
+				if (tmp.getKey().equals(s)){
+					found = true;
+					printPaths(tmp, path, pathLen, maps, xslt, null, result); 
+					break;
+				}
+			}
+			if (!found){
+				printPaths(null, path, pathLen, maps, xslt, s, result); 
+			}
+		} 
+	}
+
+	private void printArray(String[] ints, int len, String leaf) { 
+		int i; 
+		for (i=0; i<len; i++) { 
+			System.out.print(ints[i] + "_"); 
+		} 
+		System.out.println(leaf); 
 	}
 }

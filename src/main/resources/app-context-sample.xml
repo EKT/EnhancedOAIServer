@@ -185,4 +185,83 @@
 	</bean>
 	
 	
+	<!-- ____________________________ METADATA MAPPINGS ______________________________ -->
+	
+	<bean id="metadata-maps" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="creator" value-ref="creator-map"/>
+				<entry key="mappings" value-ref="metadata-mappings"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="creator-map" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="name" value="Kostas Stamatis"/>
+				<entry key="email" value="kstamatis@ekt.gr"/>
+				<entry key="url" value="http://www.ekt.gr"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="metadata-mappings" class="java.util.ArrayList">
+		<constructor-arg>
+			<list>
+				<ref bean="raw2html-mapping"/>
+			</list>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="raw2html-mapping" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="lastModified" value="2013-04-02T11:00:00"/>
+				<entry key="xslt-url" value="http://devtom.ekt.gr:8889/marcss.xsl"/>
+				<entry key="source" value-ref="raw2html-mapping-source"/>
+				<entry key="target" value-ref="raw2html-mapping-target"/>
+				<!--<entry key="additional-info" value-ref="raw2html-additional-info"/>-->
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="raw2html-mapping-source" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="metadataPrefix" value="raw"/>
+				<entry key="namespace" value="http://www.loc.gov/MARC21/slim"/>
+				<entry key="schema" value="http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="raw2html-mapping-target" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="metadataPrefix" value="html"/>
+				<entry key="namespace" value="http://www.w3.org/1999/xhtml"/>
+				<entry key="schema" value="http://www.w3.org/2002/08/xhtml/xhtml1-strict.xsd"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="raw2html-additional-info" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="description" value="This is a raw to html mapping using XSLT developed by EKT"/>
+				<entry key="xsltArguments" value-ref="raw2html-arguments"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="raw2html-arguments" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="arg1" value="test"/>
+				<entry key="arg2" value="test"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
 </beans>
