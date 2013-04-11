@@ -517,7 +517,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 		StringBuffer description = new StringBuffer();
 		description.append("<description><metadataMapping xmlns=\"http://www.ekt.gr/OAI/metadata/mapping\"" +
 				" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" +
-				"  xsi:schemaLocation=\"http://www.ekt.gr/OAI/metadata/mapping http://devtom.ekt.gr:8889/metadatamapping.xsd\">");
+				"  xsi:schemaLocation=\"http://www.ekt.gr/OAI/metadata/mapping http://www.ekt.gr/OAI/metadata/mapping/mapping.xsd\">");
 
 		HashMap<String, Object> metadataMaps = (HashMap<String, Object>)context.getBean("metadata-maps");
 
