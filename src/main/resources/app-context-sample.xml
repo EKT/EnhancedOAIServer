@@ -106,6 +106,7 @@
 			<map>
 				<entry key="oai_dc" value-ref="oaidc-crosswalk"/>
 				<entry key="raw" value-ref="raw-crosswalk"/>
+				<entry key="unimarc" value-ref="unimarc-crosswalk"/>
 			</map>
 		</constructor-arg>
 	</bean>
@@ -117,6 +118,11 @@
 	</bean>
 	
 	<bean id="raw-crosswalk" class="gr.ekt.oai.RawCrosswalk">
+		<constructor-arg>
+			<value>http://www.loc.gov/MARC21/slim/ http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd</value>
+		</constructor-arg>
+	</bean>
+	<bean id="unimarc-crosswalk" class="gr.ekt.oai.UnimarcCrosswalk">
 		<constructor-arg>
 			<value>http://www.loc.gov/MARC21/slim/ http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd</value>
 		</constructor-arg>
@@ -209,34 +215,34 @@
 	<bean id="metadata-mappings" class="java.util.ArrayList">
 		<constructor-arg>
 			<list>
-				<ref bean="raw2html-mapping"/>
+				<ref bean="unimarc2html-mapping"/>
 			</list>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="raw2html-mapping" class="java.util.HashMap">
+	<bean id="unimarc2html-mapping" class="java.util.HashMap">
 		<constructor-arg>
 			<map>
 				<entry key="lastModified" value="2013-04-02T11:00:00"/>
 				<entry key="xslt-url" value="http://devtom.ekt.gr:8889/marcss.xsl"/>
-				<entry key="source" value-ref="raw2html-mapping-source"/>
-				<entry key="target" value-ref="raw2html-mapping-target"/>
-				<!--<entry key="additional-info" value-ref="raw2html-additional-info"/>-->
+				<entry key="source" value-ref="unimarc2html-mapping-source"/>
+				<entry key="target" value-ref="unimarc2html-mapping-target"/>
+				<!--<entry key="additional-info" value-ref="unimarc2html-additional-info"/>-->
 			</map>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="raw2html-mapping-source" class="java.util.HashMap">
+	<bean id="unimarc2html-mapping-source" class="java.util.HashMap">
 		<constructor-arg>
 			<map>
-				<entry key="metadataPrefix" value="raw"/>
+				<entry key="metadataPrefix" value="unimarc"/>
 				<entry key="namespace" value="http://www.loc.gov/MARC21/slim"/>
 				<entry key="schema" value="http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd"/>
 			</map>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="raw2html-mapping-target" class="java.util.HashMap">
+	<bean id="unimarc2html-mapping-target" class="java.util.HashMap">
 		<constructor-arg>
 			<map>
 				<entry key="metadataPrefix" value="html"/>
@@ -246,16 +252,16 @@
 		</constructor-arg>
 	</bean>
 	
-	<bean id="raw2html-additional-info" class="java.util.HashMap">
+	<bean id="unimarc2html-additional-info" class="java.util.HashMap">
 		<constructor-arg>
 			<map>
 				<entry key="description" value="This is a raw to html mapping using XSLT developed by EKT"/>
-				<entry key="xsltArguments" value-ref="raw2html-arguments"/>
+				<entry key="xsltArguments" value-ref="unimarc2html-arguments"/>
 			</map>
 		</constructor-arg>
 	</bean>
 	
-	<bean id="raw2html-arguments" class="java.util.HashMap">
+	<bean id="unimarc2html-arguments" class="java.util.HashMap">
 		<constructor-arg>
 			<map>
 				<entry key="arg1" value="test"/>

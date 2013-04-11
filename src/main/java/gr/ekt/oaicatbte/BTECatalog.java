@@ -443,8 +443,6 @@ public abstract class BTECatalog extends AbstractCatalog {
 									ByteArrayOutputStream baos = new ByteArrayOutputStream();
 									StreamResult resultStream = new StreamResult(baos);
 
-									//StreamSource xml = new StreamSource(is);
-
 									// Apply the transformation
 									DOMSource source = new DOMSource(doc);
 									transformer.transform(source, resultStream);
