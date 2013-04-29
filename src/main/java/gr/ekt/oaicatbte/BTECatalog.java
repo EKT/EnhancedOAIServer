@@ -368,7 +368,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 		OutputGenerator outputGenerator = resolveOutpuGenerator(metadataPrefix, resumption, onlyHeader);
 		List<AbstractFilter> filters = resolveFilters(transSpec.getDataSetName());
 		DataLoader dataloader = resolveDataLoader();
-		Workflow workflow = resolveWorkflow();
+		Workflow workflow = resolveWorkflow(metadataPrefix);
 
 		te.setDataLoader(dataloader);
 		te.setOutputGenerator(outputGenerator);
@@ -710,19 +710,19 @@ public abstract class BTECatalog extends AbstractCatalog {
 		return dataloader;
 	}
 
-	private Workflow resolveWorkflow() throws OAIInternalServerError{
-		Map<String, Workflow> workflows = context.getBeansOfType(Workflow.class);
-		if (workflows==null || workflows.size()==0){
-			return new LinearWorkflow();
+	private Workflow resolveWorkflow(String metadataPrefix) throws OAIInternalServerError{
+		Map<String, Workflow> workflowMap = (Map<String, Workflow>)context.getBean("workflows-map");
+		
+		if (workflowMap.containsKey(metadataPrefix)){
+			return workflowMap.get(metadataPrefix);
 		}
-
-		if (workflows.size()>1){
-			throw new OAIInternalServerError("More than one workflows found on the configuration! Cannot decide which one to use!");
+		
+		if (workflowMap.containsKey("default")){
+			return workflowMap.get("default");
 		}
-
-		Workflow workflow = workflows.values().iterator().next();
-
-		return workflow;
+		
+		return new LinearWorkflow();
+		
 	}
 
 	private OutputGenerator resolveOutpuGenerator(String metadataPrefix, boolean resumption, boolean onlyHeader) throws CannotDisseminateFormatException, OAIInternalServerError, BadResumptionTokenException{

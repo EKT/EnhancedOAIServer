@@ -14,7 +14,7 @@
 
 	<bean id="dataloader" class="gr.ekt.oai.DSpaceDataLoader" scope="prototype"/>
 
-	<bean id="conjunctionTransformationWorkflow"
+	<bean id="defaultTransformationWorkflow"
 		class="gr.ekt.bte.core.LinearWorkflow" scope="prototype">
 		<property name="process">
 			<list>
@@ -28,6 +28,23 @@
 		</property>
 	</bean>
 		
+	<bean id="hediTransformationWorkflow"
+		class="gr.ekt.bte.core.LinearWorkflow" scope="prototype">
+		<property name="process">
+			<list>
+			</list>
+		</property>
+	</bean>
+		
+	<bean id="workflows-map" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="default" value-ref="defaultTransformationWorkflow"/>
+				<entry key="hedi" value-ref="hediTransformationWorkflow"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
 	<bean id="fix-metadata-language-modifier" class="gr.ekt.oai.modifiers.FixMetadataLanguageModifier">
 		<constructor-arg>
 			<value>fix-metadata-language-modifier</value>
@@ -107,6 +124,7 @@
 				<entry key="oai_dc" value-ref="oaidc-crosswalk"/>
 				<entry key="raw" value-ref="raw-crosswalk"/>
 				<entry key="unimarc" value-ref="unimarc-crosswalk"/>
+				<entry key="hedi" value-ref="hedi-crosswalk"/>
 			</map>
 		</constructor-arg>
 	</bean>
@@ -114,6 +132,12 @@
 	<bean id="oaidc-crosswalk" class="gr.ekt.oai.OAIDCCrosswalk">
 		<constructor-arg>
 			<value>http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd</value>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="hedi-crosswalk" class="gr.ekt.oai.HEDICrosswalk">
+		<constructor-arg>
+			<value>http://www.ekt.gr/HEDI/ http://www.ekt.gr/HEDI/hedi.xsd</value>
 		</constructor-arg>
 	</bean>
 	
@@ -215,16 +239,20 @@
 	<bean id="metadata-mappings" class="java.util.ArrayList">
 		<constructor-arg>
 			<list>
-				<ref bean="unimarc2html-mapping"/>
+				<!--<ref bean="unimarc2html-mapping"/>-->
+				<ref bean="unimarc2marc21-mapping"/>
+				<ref bean="marc212mods-mapping"/>
+				<ref bean="unimarc2dc-mapping"/>
 			</list>
 		</constructor-arg>
 	</bean>
 	
+	<!--Unimarc2HTML-->
 	<bean id="unimarc2html-mapping" class="java.util.HashMap">
 		<constructor-arg>
 			<map>
 				<entry key="lastModified" value="2013-04-02T11:00:00"/>
-				<entry key="xslt-url" value="http://devtom.ekt.gr:8889/marcss.xsl"/>
+				<entry key="xslt-url" value="http://www.ekt.gr/OAI/metadata/mapping/marcss.xsl"/>
 				<entry key="source" value-ref="unimarc2html-mapping-source"/>
 				<entry key="target" value-ref="unimarc2html-mapping-target"/>
 				<!--<entry key="additional-info" value-ref="unimarc2html-additional-info"/>-->
@@ -266,6 +294,103 @@
 			<map>
 				<entry key="arg1" value="test"/>
 				<entry key="arg2" value="test"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<!--Unimarc2Marc21-->
+	<bean id="unimarc2marc21-mapping" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="lastModified" value="2013-04-02T11:00:00"/>
+				<entry key="xslt-url" value="http://www.ekt.gr/OAI/metadata/mapping/unimarc2marc21.xsl"/>
+				<entry key="source" value-ref="unimarc2marc21-mapping-source"/>
+				<entry key="target" value-ref="unimarc2marc21-mapping-target"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="unimarc2marc21-mapping-source" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="metadataPrefix" value="unimarc"/>
+				<entry key="namespace" value="http://www.loc.gov/MARC21/slim"/>
+				<entry key="schema" value="http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="unimarc2marc21-mapping-target" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="metadataPrefix" value="marc21"/>
+				<entry key="namespace" value="http://www.loc.gov/MARC21/slim"/>
+				<entry key="schema" value="http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	
+	<!--Marc212Mods-->
+	<bean id="marc212mods-mapping" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="lastModified" value="2013-04-02T11:00:00"/>
+				<entry key="xslt-url" value="http://www.ekt.gr/OAI/metadata/mapping/marc21slim2mods3.xsl"/>
+				<entry key="source" value-ref="marc212mods-mapping-source"/>
+				<entry key="target" value-ref="marc212mods-mapping-target"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="marc212mods-mapping-source" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="metadataPrefix" value="marc21"/>
+				<entry key="namespace" value="http://www.loc.gov/MARC21/slim"/>
+				<entry key="schema" value="http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="marc212mods-mapping-target" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="metadataPrefix" value="mods"/>
+				<entry key="namespace" value="http://www.loc.gov/mods/v3"/>
+				<entry key="schema" value="http://www.loc.gov/standards/mods/v3/mods-3-4.xsd"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<!--Unimarc2DC-->
+	<bean id="unimarc2dc-mapping" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="lastModified" value="2013-04-02T11:00:00"/>
+				<entry key="xslt-url" value="http://www.ekt.gr/OAI/metadata/mapping/unimarc2dc.xsl"/>
+				<entry key="source" value-ref="unimarc2dc-mapping-source"/>
+				<entry key="target" value-ref="unimarc2dc-mapping-target"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="unimarc2dc-mapping-source" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="metadataPrefix" value="unimarc"/>
+				<entry key="namespace" value="http://www.loc.gov/MARC21/slim"/>
+				<entry key="schema" value="http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd"/>
+			</map>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="unimarc2dc-mapping-target" class="java.util.HashMap">
+		<constructor-arg>
+			<map>
+				<entry key="metadataPrefix" value="dc"/>
+				<entry key="namespace" value="http://www.openarchives.org/OAI/2.0/oai_dc/"/>
+				<entry key="schema" value="http://www.openarchives.org/OAI/2.0/oai_dc.xsd"/>
 			</map>
 		</constructor-arg>
 	</bean>
