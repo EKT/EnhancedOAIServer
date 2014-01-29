@@ -27,24 +27,19 @@
     	<version>1.5.48</version>
     </dependency>
     <dependency>
-    	<groupId>org.dspace</groupId>
-    	<artifactId>dspace-api</artifactId>
-    	<version>3.0</version>
-    	<exclusions>
-    		<exclusion>
-    			<artifactId>biblio-transformation-engine</artifactId>
-    			<groupId>gr.ekt</groupId>
-    		</exclusion>
-    		<exclusion>
-    			<artifactId>postgresql</artifactId>
-    			<groupId>postgresql</groupId>
-    		</exclusion>
-    	</exclusions>
-    </dependency>
-     <dependency>
-    	<groupId>gr.ekt</groupId>
-    	<artifactId>bte</artifactId>
-    	<version>0.0.1-SNAPSHOT</version>
+    	<groupId>org.springframework</groupId>
+    	<artifactId>spring-context</artifactId>
+    	<version>4.0.1.RELEASE</version>
+	</dependency>
+	<dependency>
+    	<groupId>org.springframework</groupId>
+    	<artifactId>spring-core</artifactId>
+    	<version>4.0.1.RELEASE</version>
+	</dependency>
+    <dependency>
+    	<groupId>gr.ekt.bte</groupId>
+    	<artifactId>bte-core</artifactId>
+    	<version>0.9.3.3</version>
     </dependency> 
 	</dependencies>
 </project>

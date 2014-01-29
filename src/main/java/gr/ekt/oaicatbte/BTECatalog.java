@@ -15,6 +15,7 @@ import gr.ekt.bte.core.Value;
 import gr.ekt.bte.core.Workflow;
 import gr.ekt.bte.exceptions.BadTransformationSpec;
 import gr.ekt.bte.exceptions.EmptySourceException;
+import gr.ekt.bte.exceptions.MalformedSourceException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -135,6 +136,8 @@ public abstract class BTECatalog extends AbstractCatalog {
 			}
 
 		} catch (EmptySourceException e) {
+			throw new OAIInternalServerError(e.getMessage());
+		} catch (MalformedSourceException e) {
 			throw new OAIInternalServerError(e.getMessage());
 		}
 	}
@@ -375,7 +378,7 @@ public abstract class BTECatalog extends AbstractCatalog {
 
 		if (filters!=null){
 			for (AbstractFilter filter : filters){
-				workflow.addStepBefore(filter);
+				workflow.addStepAtBeggining(filter);
 			}
 		}
 		te.setWorkflow(workflow);
@@ -497,6 +500,10 @@ public abstract class BTECatalog extends AbstractCatalog {
 			return returnMap;
 
 		} catch (BadTransformationSpec e) {	
+
+			throw new OAIInternalServerError(e.getMessage());
+		}
+		catch (MalformedSourceException e) {	
 
 			throw new OAIInternalServerError(e.getMessage());
 		}
