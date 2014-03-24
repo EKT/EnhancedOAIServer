@@ -410,8 +410,8 @@ public abstract class BTECatalog extends AbstractCatalog {
                                 throw new OAIInternalServerError("Mapping in Identify not correct");
 
                             for (String xsltURLString : allXSLTs) {
-                                System.out.println(xsltURLString);
-                                //System.out.println("------\n" + toBeTransformed.asXML() + "\n");
+                                // System.out.println(xsltURLString);
+                                // System.out.println("------\n" + toBeTransformed.asXML() + "\n");
                                 TransformerFactory factory = TransformerFactory.newInstance();
                                 Transformer transformer = factory.newTransformer(new StreamSource(xsltURLString));
 
@@ -419,7 +419,9 @@ public abstract class BTECatalog extends AbstractCatalog {
                                 DocumentSource source = new DocumentSource(tr);
                                 DocumentResult xsltResult = new DocumentResult();
                                 transformer.transform( source, xsltResult );
-                                toBeTransformed = xsltResult.getDocument().getRootElement();
+                                Document resDocument = xsltResult.getDocument();
+                                toBeTransformed = resDocument.getRootElement();
+                                resDocument.remove(toBeTransformed);
 
                             }
                             metadata.add(toBeTransformed);
