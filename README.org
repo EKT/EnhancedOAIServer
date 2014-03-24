@@ -1,0 +1,60 @@
+* Introduction
+  The enhanced OAI server is a Java Servlet web application that
+  implements the Open Archives Initiative Protocol for Metadata
+  Harvesting (OAI-PMH) v2.0. It is based on [[http://oclc.org/research/activities/oaicat.html][OAICat]] and the [[https://github.com/EKT/Biblio-Transformation-Engine][Biblio
+  Transformation Engine]]. More than the flexibility it allows with BTE
+  (custom filter and modifiers), it allows the administrator to define
+  metadata mappings using XSLTs and that way to support easily more
+  metadata formats.
+
+* How to use the library
+
+  The enhanced OAI server uses the [[http://maven.apache.org/][apache maven]] tool for building
+  and dependency resolution.
+
+** Getting the jar from the central maven repository
+
+   Include in the dependencies section of the pom.xml of your project
+   the following:
+
+#+BEGIN_SRC xml
+<dependency>
+  <groupId>gr.ekt</groupId>
+  <artifactId>enhancedoai</artifactId>
+  <version>0.1.0</version>
+</dependency>
+#+END_SRC
+
+** Building from source
+   Clone this git repository
+   (https://github.com/EKT/EnhancedOAIServer), and use maven install
+   to add the enhanced OAI server in your local maven repository:
+
+#+BEGIN_SRC sh
+git clone https://github.com/EKT/EnhancedOAIServer
+cd EnhancedOAIServer
+mvn package
+mvn install
+#+END_SRC
+
+
+* Dependencies
+  Since the project uses Apache Maven the dependencies are handled
+  automatically, so probably you will not need to concern yourself
+  with them, but they are recorded here for reference.
+
+  This project should be compiled with Java version 1.7
+
+  - OAICat v1.5.48
+  - Spring framework v4.0.1-RELEASE
+  - BTE-core v0.9.3.3
+  - dom4j v1.6.1
+  - jaxen v1.1.1
+
+* License
+  See the file [[./LICENSE.txt]]
+
+* Change log
+
+  - version 0.1.0
+    + Initial code publication
