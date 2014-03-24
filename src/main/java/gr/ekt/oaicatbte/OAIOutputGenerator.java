@@ -17,188 +17,188 @@ import ORG.oclc.oai.server.verb.OAIInternalServerError;
 
 
 /**
- * 
- * @author Kosta Stamatis (kstamatis@ekt.gr) 
- * @author Nikos Houssos (nhoussos@ekt.gr) 
+ * @author Kosta Stamatis (kstamatis@ekt.gr)
+ * @author Panagiotis Koutsourakis (kutsurak@ekt.gr)
+ * @author Nikos Houssos (nhoussos@ekt.gr)
  * @copyright 2011 - National Documentation Center
  */
 public class OAIOutputGenerator implements OutputGenerator {
 
-	// Pattern containing all the characters we want to filter out / replace
-	// converting a String to xml
-	private static final Pattern invalidXmlPattern =
-			Pattern.compile("([^\\t\\n\\r\\u0020-\\ud7ff\\ue000-\\ufffd\\u10000-\\u10ffff]+|[&<>])");
+    // Pattern containing all the characters we want to filter out / replace
+    // converting a String to xml
+    private static final Pattern invalidXmlPattern =
+            Pattern.compile("([^\\t\\n\\r\\u0020-\\ud7ff\\ue000-\\ufffd\\u10000-\\u10ffff]+|[&<>])");
 
-	// Pattern to test for only true dc elements.
-	private static final Pattern dcElementPattern = Pattern
-			.compile("(^(title|creator|subject|description|"
-					+ "publisher|contributor|date|type|"
-					+ "format|identifier|source|language|"
-					+ "relation|coverage|rights)$)");
+    // Pattern to test for only true dc elements.
+    private static final Pattern dcElementPattern = Pattern
+            .compile("(^(title|creator|subject|description|"
+                     + "publisher|contributor|date|type|"
+                     + "format|identifier|source|language|"
+                     + "relation|coverage|rights)$)");
 
-	private Crosswalk crosswalk = null;
-	private boolean onlyHeader = false;
-	private String schema = "";
+    private Crosswalk crosswalk = null;
+    private boolean onlyHeader = false;
+    private String schema = "";
 
-	/**
-	 * Default constructor
-	 */
-	public OAIOutputGenerator() {
-	}
+    /**
+     * Default constructor
+     */
+    public OAIOutputGenerator() {
+    }
 
-	public List<String> generateOutput(RecordSet recs) {
-		return generateOutput(recs, null);
-	}
+    public List<String> generateOutput(RecordSet recs) {
+        return generateOutput(recs, null);
+    }
 
-	public List<String> generateOutput(RecordSet recs, DataOutputSpec spec) {
+    public List<String> generateOutput(RecordSet recs, DataOutputSpec spec) {
 
-		ArrayList<String> tmp = new ArrayList<String>();
+        ArrayList<String> tmp = new ArrayList<String>();
 
-		for (Record record : recs.getRecords()){
+        for (Record record : recs.getRecords()){
 
-			if (!hasMetadata(record)){
-				continue;
-			}
-				
-			//Identifier
-			List<Value> identifiers = record.getValues("identifier");
-			if (identifiers==null || identifiers.size()==0){
-				try {
-					throw new OAIInternalServerError("Your implementation of BTE Record must return a Value for \"identifier\" field name!");
-				} catch (OAIInternalServerError e) {
-					e.printStackTrace();
-					return null;
-				}
-			}
-			String identifier = identifiers.get(0).getAsString();
+            if (!hasMetadata(record)){
+                continue;
+            }
 
-			//isDeleted
-			List<Value> isDels = record.getValues("isDeleted");
-			boolean isDeleted = false;
-			if (isDels==null || isDels.size()==0){
-				try {
-					throw new OAIInternalServerError("Your implementation of BTE Record must return a Value (true or false string values) for \"isDeleted\" field name!");
-				} catch (OAIInternalServerError e) {
-					e.printStackTrace();
-					return null;
-				}
-			}
-			String isDel = isDels.get(0).getAsString();
-			isDeleted = new Boolean(isDel);
+            //Identifier
+            List<Value> identifiers = record.getValues("identifier");
+            if (identifiers==null || identifiers.size()==0){
+                try {
+                    throw new OAIInternalServerError("Your implementation of BTE Record must return a Value for \"identifier\" field name!");
+                } catch (OAIInternalServerError e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+            String identifier = identifiers.get(0).getAsString();
 
-			//Datestamp
-			List<Value> datestamps = record.getValues("datestamp");
-			if (datestamps==null || datestamps.size()==0){
-				try {
-					throw new OAIInternalServerError("Your implementation of BTE Record must return a Value for \"datestamp\" field name!");
-				} catch (OAIInternalServerError e) {
-					e.printStackTrace();
-					return null;
-				}
-			}
-			String datestamp = datestamps.get(0).getAsString();
+            //isDeleted
+            List<Value> isDels = record.getValues("isDeleted");
+            boolean isDeleted = false;
+            if (isDels==null || isDels.size()==0){
+                try {
+                    throw new OAIInternalServerError("Your implementation of BTE Record must return a Value (true or false string values) for \"isDeleted\" field name!");
+                } catch (OAIInternalServerError e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+            String isDel = isDels.get(0).getAsString();
+            isDeleted = new Boolean(isDel);
 
-			//Sets
-			List<Value> sets = record.getValues("setSpecs");
-			if (sets==null || sets.size()==0){
-				try {
-					throw new OAIInternalServerError("Your implementation of BTE Record must return a Value for \"setSpecs\" field name!");
-				} catch (OAIInternalServerError e) {
-					e.printStackTrace();
-					return null;
-				}
-			}
+            //Datestamp
+            List<Value> datestamps = record.getValues("datestamp");
+            if (datestamps==null || datestamps.size()==0){
+                try {
+                    throw new OAIInternalServerError("Your implementation of BTE Record must return a Value for \"datestamp\" field name!");
+                } catch (OAIInternalServerError e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+            String datestamp = datestamps.get(0).getAsString();
 
-			//Abouts
-			List<Value> abouts = record.getValues("abouts");
+            //Sets
+            List<Value> sets = record.getValues("setSpecs");
+            if (sets==null || sets.size()==0){
+                try {
+                    throw new OAIInternalServerError("Your implementation of BTE Record must return a Value for \"setSpecs\" field name!");
+                } catch (OAIInternalServerError e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
 
-			//Create output
-			StringBuffer xmlRec = new StringBuffer();
-			if (!onlyHeader)
-				xmlRec.append("<record>");
-			xmlRec.append("<header");
+            //Abouts
+            List<Value> abouts = record.getValues("abouts");
 
-			if (isDeleted){
-				xmlRec.append(" status=\"deleted\"");
-			}
+            //Create output
+            StringBuffer xmlRec = new StringBuffer();
+            if (!onlyHeader)
+                xmlRec.append("<record>");
+            xmlRec.append("<header");
 
-			xmlRec.append(">");
-			xmlRec.append("<identifier>");
-			xmlRec.append("oai:"+identifier);
-			xmlRec.append("</identifier>");
-			xmlRec.append("<datestamp>");
-			xmlRec.append(datestamp);
-			xmlRec.append("</datestamp>");
+            if (isDeleted){
+                xmlRec.append(" status=\"deleted\"");
+            }
 
-			for (Value value : sets){
-				xmlRec.append("<setSpec>");
-				xmlRec.append(value.getAsString());
-				xmlRec.append("</setSpec>");
-			}
+            xmlRec.append(">");
+            xmlRec.append("<identifier>");
+            xmlRec.append("oai:"+identifier);
+            xmlRec.append("</identifier>");
+            xmlRec.append("<datestamp>");
+            xmlRec.append(datestamp);
+            xmlRec.append("</datestamp>");
 
-			xmlRec.append("</header>");
+            for (Value value : sets){
+                xmlRec.append("<setSpec>");
+                xmlRec.append(value.getAsString());
+                xmlRec.append("</setSpec>");
+            }
 
-			if (!onlyHeader){
-				xmlRec.append("<metadata>");
-				xmlRec.append(this.createMetadata(record));
-				xmlRec.append("</metadata>");
+            xmlRec.append("</header>");
 
-				if (abouts!=null && abouts.size()>0){
-					Value value = abouts.get(0);
-					xmlRec.append("<about>");
-					xmlRec.append(value.getAsString());
-					xmlRec.append("</about>");
+            if (!onlyHeader){
+                xmlRec.append("<metadata>");
+                xmlRec.append(this.createMetadata(record));
+                xmlRec.append("</metadata>");
 
-				}
-			}
+                if (abouts!=null && abouts.size()>0){
+                    Value value = abouts.get(0);
+                    xmlRec.append("<about>");
+                    xmlRec.append(value.getAsString());
+                    xmlRec.append("</about>");
 
-			if (!onlyHeader){
-				xmlRec.append("</record>");
-			}
+                }
+            }
 
-			tmp.add(xmlRec.toString());
-		}
+            if (!onlyHeader){
+                xmlRec.append("</record>");
+            }
 
-		return tmp;
-	}
+            tmp.add(xmlRec.toString());
+        }
 
-	public String createMetadata(Record record)
-	{
-		if (crosswalk!=null){
-			try {
-				return crosswalk.createMetadata(record);
-			} catch (CannotDisseminateFormatException e) {
-				e.printStackTrace();
-				return "";
-			}
-		}
-		else {
-			return "";
-		}
-	}
-	
-	public boolean hasMetadata(Record record)
-	{
-		return crosswalk.isAvailableFor(record);
-	}
+        return tmp;
+    }
 
-	public Crosswalk getCrosswalk() {
-		return crosswalk;
-	}
+    public String createMetadata(Record record)
+    {
+        if (crosswalk!=null){
+            try {
+                return crosswalk.createMetadata(record);
+            } catch (CannotDisseminateFormatException e) {
+                e.printStackTrace();
+                return "";
+            }
+        }
+        else {
+            return "";
+        }
+    }
 
+    public boolean hasMetadata(Record record)
+    {
+        return crosswalk.isAvailableFor(record);
+    }
 
-	public void setCrosswalk(Crosswalk crosswalk) {
-		this.crosswalk = crosswalk;
-	}
+    public Crosswalk getCrosswalk() {
+        return crosswalk;
+    }
 
 
-	public boolean isOnlyHeader() {
-		return onlyHeader;
-	}
+    public void setCrosswalk(Crosswalk crosswalk) {
+        this.crosswalk = crosswalk;
+    }
 
 
-	public void setOnlyHeader(boolean onlyHeader) {
-		this.onlyHeader = onlyHeader;
-	}
+    public boolean isOnlyHeader() {
+        return onlyHeader;
+    }
+
+
+    public void setOnlyHeader(boolean onlyHeader) {
+        this.onlyHeader = onlyHeader;
+    }
 
 }
