@@ -4,7 +4,7 @@
 
   <groupId>gr.ekt</groupId>
   <artifactId>enhancedoai</artifactId>
-  <version>0.1.1-SNAPSHOT</version>
+  <version>0.1.1</version>
   <packaging>jar</packaging>
   <name>Enhanced OAI Server</name>
   <url>https://github.com/EKT/EnhancedOAIServer</url>

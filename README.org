@@ -21,7 +21,7 @@
 <dependency>
   <groupId>gr.ekt</groupId>
   <artifactId>enhancedoai</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 #+END_SRC
 
@@ -47,7 +47,7 @@ mvn install
 
   - OAICat v1.5.48
   - Spring framework v4.0.1-RELEASE
-  - BTE-core v0.9.3.3
+  - BTE-core v0.9.3.4
   - dom4j v1.6.1
   - jaxen v1.1.1
 
@@ -55,6 +55,9 @@ mvn install
   See the file [[./LICENSE.txt]]
 
 * Change log
+
+  - version 0.1.1
+    + Update dependency on version 0.9.3.4 of BTE
 
   - version 0.1.0
     + Initial code publication
